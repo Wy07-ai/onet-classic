@@ -94,3 +94,30 @@ function buildPath(node, end) {
     return !collinear;
   });
 }
+
+/**
+ * Cari SATU pasangan tile sejenis yang saat ini bisa dihubungkan.
+ * Dipakai oleh fitur Hint dan deteksi "buntu" (tidak ada langkah tersisa).
+ *
+ * @returns {{a:{r,c}, b:{r,c}, path:{r,c}[]} | null}
+ */
+export function findValidPair(grid, maxTurns = 2) {
+  const byType = new Map();
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      const v = grid[r][c];
+      if (v === 0) continue;
+      if (!byType.has(v)) byType.set(v, []);
+      byType.get(v).push({ r, c });
+    }
+  }
+  for (const list of byType.values()) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const path = findPath(grid, list[i], list[j], maxTurns);
+        if (path) return { a: list[i], b: list[j], path };
+      }
+    }
+  }
+  return null;
+}
