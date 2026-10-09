@@ -5,6 +5,7 @@ import { TILE_SIZE, COLORS } from '../constants.js';
 export default class Tile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, value, r, c) {
     super(scene, x, y);
+    this.homeX = x;
     this.value = value;
     this.r = r;
     this.c = c;
@@ -96,7 +97,7 @@ export default class Tile extends Phaser.GameObjects.Container {
       yoyo: true,
       repeat: 3,
       onComplete: () => {
-        this.x = this.getData('homeX') ?? this.x;
+        this.x = this.homeX;
         if (onDone) onDone();
       },
     });

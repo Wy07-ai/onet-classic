@@ -7,25 +7,25 @@ export default class GameOverScene extends Phaser.Scene {
     super(SCENES.GAME_OVER);
   }
 
-  create() {
+  create({ win = false, score = 0 } = {}) {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
     this.cameras.main.fadeIn(300);
 
     this.add
-      .text(cx, cy - 100, 'GAME OVER', {
+      .text(cx, cy - 100, win ? 'YOU WIN!' : 'GAME OVER', {
         fontFamily: FONT_FAMILY,
         fontSize: '80px',
         fontStyle: 'bold',
-        color: '#ef476f',
+        color: win ? '#4cd964' : '#ef476f',
         stroke: '#16213e',
         strokeThickness: 10,
       })
       .setOrigin(0.5);
 
     this.add
-      .text(cx, cy - 20, 'Skor: 0', {
+      .text(cx, cy - 20, `Skor: ${score}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '32px',
         color: '#ffffff',
