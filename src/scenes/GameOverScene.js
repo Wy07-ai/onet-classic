@@ -1,50 +1,43 @@
 import Phaser from 'phaser';
-import { SCENES, GAME_WIDTH, GAME_HEIGHT } from '../constants.js';
+import { SCENES, GAME_WIDTH, GAME_HEIGHT, FONT_FAMILY } from '../constants.js';
 import { createButton } from '../utils/createButton.js';
 
 export default class GameOverScene extends Phaser.Scene {
   constructor() {
     super(SCENES.GAME_OVER);
   }
-  init(data) {
-    this.result = data || {};
-  }
+
   create() {
-    const { win = false, score = 0, timeLeft = 0 } = this.result;
-    const font = 'Arial, sans-serif';
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+
+    this.cameras.main.fadeIn(300);
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.25, win ? 'MENANG!' : 'GAME OVER', {
-        fontFamily: font,
-        fontSize: '72px',
+      .text(cx, cy - 100, 'GAME OVER', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '80px',
         fontStyle: 'bold',
-        color: win ? '#7CFC00' : '#ff4d6d',
+        color: '#ef476f',
+        stroke: '#16213e',
+        strokeThickness: 10,
       })
       .setOrigin(0.5);
 
     this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT * 0.37,
-        win ? `Papan bersih! Sisa waktu ${timeLeft} detik` : 'Waktu habis sebelum papan bersih',
-        { fontFamily: font, fontSize: '26px', color: '#c8d0f0' }
-      )
-      .setOrigin(0.5);
-
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.46, `SKOR AKHIR: ${score}`, {
-        fontFamily: font,
-        fontSize: '44px',
-        fontStyle: 'bold',
-        color: '#ffe066',
+      .text(cx, cy - 20, 'Skor: 0', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '32px',
+        color: '#ffffff',
       })
       .setOrigin(0.5);
 
-    createButton(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.62, 'MAIN LAGI', () =>
-      this.scene.start(SCENES.GAME)
-    );
-    createButton(this, GAME_WIDTH / 2, GAME_HEIGHT * 0.76, 'MENU', () =>
-      this.scene.start(SCENES.MENU)
-    );
+    createButton(this, cx, cy + 90, 'RESTART', () => {
+      this.scene.start(SCENES.GAME);
+    }, { width: 300, height: 80, fontSize: 38 });
+
+    createButton(this, cx, cy + 190, 'MENU', () => {
+      this.scene.start(SCENES.MENU);
+    }, { width: 220, height: 56, fontSize: 24 });
   }
 }
