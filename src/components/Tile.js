@@ -1,10 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, COLORS } from '../constants.js';
 
-/**
- * Kartu Onet sederhana: kotak berwarna + angka (placeholder sebelum ada sprite).
- * Posisi grid disimpan di this.r / this.c.
- */
+/** Posisi grid disimpan di this.r / this.c. */
 export default class Tile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, value, r, c) {
     super(scene, x, y);
@@ -16,20 +13,11 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.hintTween = null;
 
     const half = TILE_SIZE / 2;
-    this.fillColor = Tile.colorFor(value);
-
     this.bg = scene.add.graphics();
-    this.label = scene.add
-      .text(0, 0, String(value), {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
-        fontStyle: 'bold',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5);
-    this.label.setStroke('#000000', 3);
+    this.sprite = scene.add.image(0, 0, 'animal-tiles', Tile.frameFor(value));
+    this.sprite.setDisplaySize(TILE_SIZE - 8, TILE_SIZE - 8);
 
-    this.add([this.bg, this.label]);
+    this.add([this.sprite, this.bg]);
     this.setSize(TILE_SIZE, TILE_SIZE);
     this.setInteractive({ useHandCursor: true });
     this.draw();
@@ -37,30 +25,26 @@ export default class Tile extends Phaser.GameObjects.Container {
     this._half = half;
   }
 
-  static colorFor(value) {
-    const hue = ((value * 47) % 360) / 360; // warna unik per tipe
-    return Phaser.Display.Color.HSLToColor(hue, 0.65, 0.55).color;
+  static frameFor(value) {
+    return (value - 1) % 24;
   }
 
   /** Ganti jenis tile (dipakai Shuffle). Posisi grid (r, c) tidak berubah. */
   setValue(value) {
     this.value = value;
-    this.fillColor = Tile.colorFor(value);
-    this.label.setText(String(value));
+    this.sprite.setFrame(Tile.frameFor(value));
     this.draw();
   }
 
   draw() {
     const half = TILE_SIZE / 2;
     this.bg.clear();
-    this.bg.fillStyle(this.fillColor, 1);
-    this.bg.fillRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
     if (this.selected) {
-      this.bg.lineStyle(4, COLORS.highlight, 1);
+      this.bg.lineStyle(4, COLORS.primaryHover, 1);
     } else if (this.hinted) {
-      this.bg.lineStyle(4, COLORS.hint, 1);
+      this.bg.lineStyle(4, COLORS.accent, 1);
     } else {
-      this.bg.lineStyle(2, 0x000000, 0.35);
+      this.bg.lineStyle(2, 0x000000, 0.25);
     }
     this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
   }
@@ -117,7 +101,7 @@ export default class Tile extends Phaser.GameObjects.Container {
       },
     });
     const half = TILE_SIZE / 2;
-    this.bg.lineStyle(4, 0xff0000, 1);
+    this.bg.lineStyle(4, COLORS.danger, 1);
     this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
   }
 
