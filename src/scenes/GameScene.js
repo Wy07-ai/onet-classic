@@ -7,10 +7,12 @@ import {
   BOARD_COLS,
   CELL_SIZE,
   COLORS,
+  GAMEPLAY,
 } from '../constants.js';
-import { generateBoard, countTiles } from '../utils/boardGenerator.js';
-import { findPath } from '../utils/pathfinding.js';
+import { generateBoard, countTiles, shuffleRemaining } from '../utils/boardGenerator.js';
+import { findPath, findValidPair } from '../utils/pathfinding.js';
 import Tile from '../components/Tile.js';
+import UIOverlay from '../components/UIOverlay.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -23,7 +25,16 @@ export default class GameScene extends Phaser.Scene {
     this.cols = this.grid[0].length;
     this.tiles = new Map(); // key "r,c" -> Tile
     this.selected = null;
-    this.locked = false;
+    this.locked = false; // true selama animasi (input papan diabaikan)
+    this.ended = false; // true begitu game selesai (menang/kalah)
+    this.finished = false;
+    this.hintTiles = [];
+
+    // State gameplay (di-reset tiap create() karena instance scene dipakai ulang)
+    this.score = 0;
+    this.timeLeft = GAMEPLAY.TIME_LIMIT;
+    this.shufflesLeft = GAMEPLAY.SHUFFLE_LIMIT;
+    this.lastTick = performance.now();
 
     // Titik asal papan (sudut kiri-atas) supaya seluruh grid (+border) di tengah layar
     this.originX = (GAME_WIDTH - this.cols * CELL_SIZE) / 2;
@@ -53,6 +64,36 @@ export default class GameScene extends Phaser.Scene {
         this.tiles.set(`${r},${c}`, tile);
       }
     }
+
+    this.hud = new UIOverlay(this, {
+      x: this.originX,
+      width: this.cols * CELL_SIZE,
+      shuffles: this.shufflesLeft,
+      onShuffle: () => this.shuffleBoard(),
+      onHint: () => this.useHint(),
+    });
+    this.hud.setTime(this.timeLeft, GAMEPLAY.TIME_LIMIT);
+
+    // Papan awal acak bisa (sangat jarang) langsung buntu -> cek juga di awal
+    this.ensureMovesAvailable();
+  }
+
+  update() {
+    // Timer pakai jam nyata, bukan `delta` Phaser: saat FPS rendah Phaser meredam delta
+    // (lag smoothing) sehingga timer berjalan lambat. Batas 0,5 dtk/frame agar pindah tab
+    // atau lag sesaat tidak menghabiskan waktu pemain.
+    const now = performance.now();
+    const dt = Math.min(0.5, (now - this.lastTick) / 1000);
+    this.lastTick = now;
+    if (this.ended) return;
+    this.timeLeft -= dt;
+    if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
+      this.hud.setTime(0, GAMEPLAY.TIME_LIMIT);
+      this.finishGame(false);
+      return;
+    }
+    this.hud.setTime(this.timeLeft, GAMEPLAY.TIME_LIMIT);
   }
 
   /** Pusat sel (r,c) dalam piksel. Dipakai juga untuk titik sudut jalur (termasuk di border). */
@@ -64,7 +105,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onTileClick(tile) {
-    if (this.locked) return;
+    if (this.locked || this.ended) return;
+    this.clearHint();
 
     // Klik pertama
     if (!this.selected) {
@@ -107,14 +149,35 @@ export default class GameScene extends Phaser.Scene {
       this.lineGfx.clear();
       this.removeTile(a);
       this.removeTile(b);
+      this.registerMatch(a, b);
+
+      // Papan bersih? Hentikan timer SEKARANG supaya tidak kalah saat animasi hilang berjalan.
+      const cleared = countTiles(this.grid) === 0;
+      if (cleared) this.ended = true;
+
       b.vanish();
       a.vanish(() => {
-        this.locked = false;
-        if (countTiles(this.grid) === 0) {
-          this.scene.start(SCENES.GAME_OVER, { win: true });
+        if (cleared) {
+          this.finishGame(true);
+          return;
         }
+        this.locked = false;
+        this.ensureMovesAvailable();
       });
     });
+  }
+
+  /** Tambah skor + bonus waktu untuk satu pasangan yang cocok. */
+  registerMatch(a, b) {
+    this.score += GAMEPLAY.MATCH_SCORE;
+    this.timeLeft = Math.min(GAMEPLAY.TIME_LIMIT, this.timeLeft + GAMEPLAY.MATCH_TIME_BONUS);
+    this.hud.setScore(this.score);
+    this.hud.setTime(this.timeLeft, GAMEPLAY.TIME_LIMIT);
+    this.hud.floatText(
+      (a.x + b.x) / 2,
+      (a.y + b.y) / 2,
+      `+${GAMEPLAY.MATCH_SCORE}  +${GAMEPLAY.MATCH_TIME_BONUS}s`
+    );
   }
 
   handleMismatch(a, b) {
@@ -134,6 +197,96 @@ export default class GameScene extends Phaser.Scene {
   removeTile(tile) {
     this.grid[tile.r][tile.c] = 0;
     this.tiles.delete(`${tile.r},${tile.c}`);
+  }
+
+  // ---------------------------------------------------------------- Hint
+
+  useHint() {
+    if (this.locked || this.ended) return;
+    this.clearHint();
+    const pair = findValidPair(this.grid);
+    if (!pair) {
+      this.ensureMovesAvailable();
+      return;
+    }
+    const a = this.tiles.get(`${pair.a.r},${pair.a.c}`);
+    const b = this.tiles.get(`${pair.b.r},${pair.b.c}`);
+    a.startHint();
+    b.startHint();
+    this.hintTiles = [a, b];
+  }
+
+  clearHint() {
+    for (const t of this.hintTiles) if (t && t.active) t.stopHint();
+    this.hintTiles = [];
+  }
+
+  // ------------------------------------------------------------- Shuffle
+
+  /**
+   * @param {{auto?: boolean}} opts auto=true: dipicu otomatis (papan buntu), tidak memakai jatah.
+   */
+  shuffleBoard({ auto = false } = {}) {
+    if (this.ended) return;
+    if (!auto) {
+      if (this.locked || this.shufflesLeft <= 0) return;
+      this.shufflesLeft--;
+      this.hud.setShuffles(this.shufflesLeft);
+    }
+
+    this.locked = true;
+    this.clearHint();
+    if (this.selected) {
+      this.selected.setSelected(false);
+      this.selected = null;
+    }
+
+    const tiles = [...this.tiles.values()];
+    this.tweens.add({
+      targets: tiles,
+      scaleX: 0,
+      duration: 140,
+      onComplete: () => {
+        // Posisi tile tidak berpindah; hanya jenisnya yang diacak di grid, lalu disinkronkan.
+        shuffleRemaining(this.grid);
+        for (const t of tiles) t.setValue(this.grid[t.r][t.c]);
+        this.tweens.add({
+          targets: tiles,
+          scaleX: 1,
+          duration: 140,
+          onComplete: () => {
+            this.locked = false;
+          },
+        });
+      },
+    });
+  }
+
+  /** Jika tak ada pasangan valid tersisa, acak otomatis (tanpa mengurangi jatah Shuffle). */
+  ensureMovesAvailable() {
+    if (this.ended || countTiles(this.grid) === 0) return;
+    if (findValidPair(this.grid)) return;
+    this.hud.showToast('Tidak ada pasangan tersisa — mengacak otomatis');
+    this.shuffleBoard({ auto: true });
+  }
+
+  // ------------------------------------------------------------ Game end
+
+  finishGame(win) {
+    if (this.finished) return;
+    this.finished = true;
+    this.ended = true;
+    this.locked = true;
+    this.clearHint();
+
+    const data = { win, score: this.score, timeLeft: Math.ceil(this.timeLeft) };
+    if (win) {
+      this.scene.start(SCENES.GAME_OVER, data);
+    } else {
+      // Jeda singkat supaya pemain sempat melihat bar waktu habis
+      this.hud.showToast('WAKTU HABIS!');
+      this.time.delayedCall(900, () => this.scene.start(SCENES.GAME_OVER, data));
+    }
   }
 
   drawPath(path) {

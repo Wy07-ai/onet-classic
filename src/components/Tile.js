@@ -12,10 +12,11 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.r = r;
     this.c = c;
     this.selected = false;
+    this.hinted = false;
+    this.hintTween = null;
 
     const half = TILE_SIZE / 2;
-    const hue = ((value * 47) % 360) / 360; // warna unik per tipe
-    this.fillColor = Phaser.Display.Color.HSLToColor(hue, 0.65, 0.55).color;
+    this.fillColor = Tile.colorFor(value);
 
     this.bg = scene.add.graphics();
     this.label = scene.add
@@ -36,6 +37,19 @@ export default class Tile extends Phaser.GameObjects.Container {
     this._half = half;
   }
 
+  static colorFor(value) {
+    const hue = ((value * 47) % 360) / 360; // warna unik per tipe
+    return Phaser.Display.Color.HSLToColor(hue, 0.65, 0.55).color;
+  }
+
+  /** Ganti jenis tile (dipakai Shuffle). Posisi grid (r, c) tidak berubah. */
+  setValue(value) {
+    this.value = value;
+    this.fillColor = Tile.colorFor(value);
+    this.label.setText(String(value));
+    this.draw();
+  }
+
   draw() {
     const half = TILE_SIZE / 2;
     this.bg.clear();
@@ -43,17 +57,50 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.bg.fillRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
     if (this.selected) {
       this.bg.lineStyle(4, COLORS.highlight, 1);
-      this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
+    } else if (this.hinted) {
+      this.bg.lineStyle(4, COLORS.hint, 1);
     } else {
       this.bg.lineStyle(2, 0x000000, 0.35);
-      this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
     }
+    this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
   }
 
   setSelected(flag) {
     this.selected = flag;
     this.draw();
     this.setScale(flag ? 1.06 : 1);
+  }
+
+  /** Kedip + outline cyan (efek Hint). Berhenti sendiri setelah beberapa kedipan. */
+  startHint() {
+    this.stopHint();
+    this.hinted = true;
+    this.draw();
+    this.hintTween = this.scene.tweens.add({
+      targets: this,
+      alpha: 0.3,
+      duration: 220,
+      yoyo: true,
+      repeat: 5,
+      onComplete: () => {
+        this.hintTween = null;
+        this.resetHintVisual();
+      },
+    });
+  }
+
+  stopHint() {
+    const t = this.hintTween;
+    this.hintTween = null;
+    if (t) t.stop();
+    this.resetHintVisual();
+  }
+
+  resetHintVisual() {
+    if (!this.hinted) return;
+    this.hinted = false;
+    this.alpha = 1;
+    this.draw();
   }
 
   /** Getar horizontal + flash merah singkat (dipakai saat pasangan tidak cocok). */
@@ -76,6 +123,7 @@ export default class Tile extends Phaser.GameObjects.Container {
 
   /** Animasi hilang (mengecil + memudar) lalu destroy. */
   vanish(onDone) {
+    this.stopHint();
     this.disableInteractive();
     this.scene.tweens.add({
       targets: this,
