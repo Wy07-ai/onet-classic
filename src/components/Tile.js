@@ -3,9 +3,10 @@ import { TILE_SIZE, COLORS } from '../constants.js';
 
 /** Posisi grid disimpan di this.r / this.c. */
 export default class Tile extends Phaser.GameObjects.Container {
-  constructor(scene, x, y, value, r, c) {
+  constructor(scene, x, y, value, r, c, size = TILE_SIZE) {
     super(scene, x, y);
     this.homeX = x;
+    this.size = size;
     this.value = value;
     this.r = r;
     this.c = c;
@@ -14,17 +15,15 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.invalid = false;
     this.hintTween = null;
 
-    const half = TILE_SIZE / 2;
     this.bg = scene.add.graphics();
     this.sprite = scene.add.image(0, 0, 'animal-tiles', Tile.frameFor(value));
-    this.sprite.setDisplaySize(TILE_SIZE - 8, TILE_SIZE - 8);
+    this.sprite.setDisplaySize(size - 8, size - 8);
 
     this.add([this.sprite, this.bg]);
-    this.setSize(TILE_SIZE, TILE_SIZE);
+    this.setSize(size, size);
     this.setInteractive({ useHandCursor: true });
     this.draw();
     scene.add.existing(this);
-    this._half = half;
   }
 
   static frameFor(value) {
@@ -39,7 +38,7 @@ export default class Tile extends Phaser.GameObjects.Container {
   }
 
   draw() {
-    const half = TILE_SIZE / 2;
+    const half = this.size / 2;
     this.bg.clear();
     if (this.selected) {
       this.bg.lineStyle(4, COLORS.primaryHover, 1);
@@ -50,7 +49,7 @@ export default class Tile extends Phaser.GameObjects.Container {
     } else {
       this.bg.lineStyle(2, 0x000000, 0.25);
     }
-    this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
+    this.bg.strokeRoundedRect(-half, -half, this.size, this.size, 8);
   }
 
   setSelected(flag) {

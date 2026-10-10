@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../constants.js';
+import { createButton } from '../utils/createButton.js';
+import { audioLabel, isMuted } from '../utils/audioSettings.js';
 
 const FONT = 'Arial, sans-serif';
 const DEPTH = 20;
 
 /**
- * HUD game: timer bar (atas), skor, tombol Shuffle & Hint (bawah), toast, dan teks melayang.
+ * HUD game: timer bar, skor, indikator level, tombol Pause, toggle audio,
+ * tombol Shuffle & Hint (bawah), toast, dan teks melayang.
  * Hanya menampilkan data; semua logika gameplay tetap di GameScene.
  */
 export default class UIOverlay {
@@ -17,8 +20,12 @@ export default class UIOverlay {
    * @param {number} o.shuffles jatah awal shuffle
    * @param {() => void} o.onShuffle
    * @param {() => void} o.onHint
+   * @param {number} o.level level yang sedang dimainkan
+   * @param {() => void} o.onPause
+   * @param {() => void} o.onToggleBgm
+   * @param {() => void} o.onToggleSfx
    */
-  constructor(scene, { x, width, shuffles, onShuffle, onHint }) {
+  constructor(scene, { x, width, shuffles, onShuffle, onHint, level = 1, onPause, onToggleBgm, onToggleSfx }) {
     this.scene = scene;
     this.barX = x;
     this.barW = width;
@@ -55,12 +62,50 @@ export default class UIOverlay {
       .setOrigin(0, 0.5)
       .setDepth(DEPTH);
 
+    // --- Indikator level (sejajar dengan skor, rata kanan timer bar) ---
+    this.levelText = scene.add
+      .text(x + width, 62, '', {
+        fontFamily: FONT,
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#7aa9ff',
+      })
+      .setOrigin(1, 0.5)
+      .setDepth(DEPTH);
+    this.setLevel(level);
+
+    // --- Tombol Pause (kiri atas) ---
+    this.pauseBtn = createButton(scene, 110, 46, 'PAUSE', () => onPause?.(), {
+      width: 150,
+      height: 44,
+      fontSize: 20,
+    }).setDepth(DEPTH);
+
+    // --- Toggle audio (kiri bawah) ---
+    const toggleOpts = { width: 170, height: 44, fontSize: 18 };
+    this.bgmBtn = createButton(scene, 110, GAME_HEIGHT - 42, '', () => onToggleBgm?.(), toggleOpts).setDepth(DEPTH);
+    this.sfxBtn = createButton(scene, 300, GAME_HEIGHT - 42, '', () => onToggleSfx?.(), toggleOpts).setDepth(DEPTH);
+    this.syncAudio();
+
     // --- Tombol bawah ---
     const by = GAME_HEIGHT - 42;
     this.shuffleBtn = this.makeButton(GAME_WIDTH / 2 - 130, by, onShuffle);
     this.hintBtn = this.makeButton(GAME_WIDTH / 2 + 130, by, onHint);
     this.hintBtn.text.setText('PETUNJUK');
     this.setShuffles(shuffles);
+  }
+
+  /** Perbarui label tombol MUSIK / SFX sesuai status mute saat ini. */
+  syncAudio() {
+    [['bgm', this.bgmBtn], ['sfx', this.sfxBtn]].forEach(([channel, btn]) => {
+      const label = btn.list[1];
+      label.setText(audioLabel(this.scene, channel));
+      label.setColor(isMuted(this.scene, channel) ? '#ff9aa8' : '#ffffff');
+    });
+  }
+
+  setLevel(n) {
+    this.levelText.setText(`LEVEL ${n}`);
   }
 
   makeButton(x, y, onClick) {

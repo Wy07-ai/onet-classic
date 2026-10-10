@@ -5,12 +5,33 @@ export const BOARD_ROWS = 8;
 export const BOARD_COLS = 12;
 
 export const GAMEPLAY = {
-  timeLimit: 120,
   pairScore: 100,
   timeBonus: 3,
   shuffles: 3,
-  tileTypes: 24,
 };
+
+/**
+ * Daftar level. Ukuran grid membesar & batas waktu mengecil seiring naik level.
+ * Menyelesaikan level terakhir = menang. Ukuran tile dihitung otomatis
+ * (lihat utils/boardLayout.js) supaya papan besar tetap muat di layar.
+ * rows * cols harus genap.
+ */
+export const LEVELS = [
+  { rows: 6, cols: 10, timeLimit: 120, tileTypes: 12 },
+  { rows: 8, cols: 12, timeLimit: 110, tileTypes: 16 },
+  { rows: 8, cols: 14, timeLimit: 100, tileTypes: 20 },
+  { rows: 10, cols: 14, timeLimit: 90, tileTypes: 24 },
+  { rows: 10, cols: 16, timeLimit: 80, tileTypes: 24 },
+];
+export const MAX_LEVEL = LEVELS.length;
+
+export function getLevelConfig(level) {
+  const index = Math.min(Math.max(1, Math.floor(level)), MAX_LEVEL) - 1;
+  return LEVELS[index];
+}
+
+// Area (px) tempat papan boleh digambar, di antara HUD atas dan tombol bawah.
+export const BOARD_AREA = { top: 104, bottom: 640, sideMargin: 40, panelPadding: 6 };
 
 export const SCENES = {
   BOOT: 'BootScene',
@@ -18,6 +39,7 @@ export const SCENES = {
   MENU: 'MenuScene',
   GAME: 'GameScene',
   GAME_OVER: 'GameOverScene',
+  PAUSE: 'PauseScene',
 };
 
 export const COLORS = {

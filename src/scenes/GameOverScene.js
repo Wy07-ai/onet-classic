@@ -7,7 +7,7 @@ export default class GameOverScene extends Phaser.Scene {
     super(SCENES.GAME_OVER);
   }
 
-  create({ win = false, score = 0 } = {}) {
+  create({ win = false, score = 0, level = 1 } = {}) {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
@@ -25,7 +25,7 @@ export default class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, cy - 20, `Skor: ${score}`, {
+      .text(cx, cy - 20, `Skor: ${score}  •  ${win ? 'Semua level selesai' : `Level ${level}`}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '32px',
         color: '#ffffff',
@@ -33,7 +33,8 @@ export default class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     createButton(this, cx, cy + 90, 'RESTART', () => {
-      this.scene.start(SCENES.GAME);
+      // Data eksplisit: tanpa ini Phaser memakai ulang data start sebelumnya (level terakhir)
+      this.scene.start(SCENES.GAME, { level: 1, score: 0 });
     }, { width: 300, height: 80, fontSize: 38 });
 
     createButton(this, cx, cy + 190, 'MENU', () => {
