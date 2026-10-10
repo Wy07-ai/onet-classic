@@ -121,14 +121,46 @@ export default class UIOverlay {
       .setOrigin(0.5)
       .setDepth(DEPTH)
       .setInteractive({ useHandCursor: true });
-    btn.text.on('pointerover', () => btn.enabled && btn.text.setBackgroundColor('#5775f0'));
-    btn.text.on('pointerout', () => btn.enabled && btn.text.setBackgroundColor('#3a56d4'));
-    btn.text.on('pointerup', () => btn.enabled && onClick());
+    const tweenScale = (scale, duration = 90) => {
+      this.scene.tweens.killTweensOf(btn.text);
+      this.scene.tweens.add({ targets: btn.text, scale, duration, ease: 'Quad.easeOut' });
+    };
+    let pressed = false;
+    btn.text.on('pointerover', () => {
+      if (!btn.enabled) return;
+      btn.text.setBackgroundColor(pressed ? '#2c43b0' : '#5775f0');
+      tweenScale(pressed ? 0.95 : 1.06);
+    });
+    btn.text.on('pointerout', () => {
+      if (!btn.enabled) return;
+      btn.text.setBackgroundColor('#3a56d4');
+      tweenScale(1);
+    });
+    btn.text.on('pointerdown', () => {
+      if (!btn.enabled) return;
+      pressed = true;
+      btn.text.setBackgroundColor('#2c43b0');
+      tweenScale(0.95, 60);
+    });
+    btn.text.on('pointerup', () => {
+      if (!btn.enabled || !pressed) return;
+      pressed = false;
+      btn.text.setBackgroundColor('#5775f0');
+      tweenScale(1.06);
+      onClick();
+    });
+    btn.text.on('pointerupoutside', () => {
+      pressed = false;
+    });
     return btn;
   }
 
   setButtonEnabled(btn, flag) {
     btn.enabled = flag;
+    if (!flag) {
+      this.scene.tweens.killTweensOf(btn.text);
+      btn.text.setScale(1);
+    }
     btn.text.setBackgroundColor(flag ? '#3a56d4' : '#3a3f55');
     btn.text.setColor(flag ? '#ffffff' : '#8a8fa8');
     btn.text.input.cursor = flag ? 'pointer' : 'default';

@@ -141,4 +141,4 @@ await Promise.all(
   )
 );
 await writeWav('bgm.wav', 8, (time) => renderBackground(time));
-console.log(`Generated ${Object.keys(effects).length + 1} WAV files in ${outputDirectory}`);
+console.log(`Generated ${Object.keys(effects).length + 1} WAV files in ${outputDirectory}`);

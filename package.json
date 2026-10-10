@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/logic.test.mjs && node tests/levels.test.mjs && node tests/shift.test.mjs && node tests/highscore.test.mjs && node tests/levelprogress.test.mjs && node tests/levelgrid.test.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

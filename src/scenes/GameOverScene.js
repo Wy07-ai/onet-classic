@@ -1,60 +1,176 @@
 import Phaser from 'phaser';
-import { SCENES, GAME_WIDTH, GAME_HEIGHT, FONT_FAMILY } from '../constants.js';
+import { COLORS, GAMEPLAY, GAME_HEIGHT, GAME_WIDTH, FONT_FAMILY, MAX_LEVEL, SCENES } from '../constants.js';
 import { createButton } from '../utils/createButton.js';
 import { saveHighScore } from '../utils/highScore.js';
+import { addThemedBackground } from '../utils/background.js';
+import { fadeToScene } from '../utils/transitions.js';
+
+const PANEL = { y: 365, width: 720, height: 570 };
+
+function formatTime(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
 
 export default class GameOverScene extends Phaser.Scene {
   constructor() {
     super(SCENES.GAME_OVER);
   }
 
-  create({ win = false, score = 0, level = 1 } = {}) {
+  create({ win = false, score = 0, level = 1, timeLeft = 0 } = {}) {
     const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const accent = win ? COLORS.success : COLORS.danger;
 
     this.cameras.main.fadeIn(300);
+    addThemedBackground(this, { alpha: 0.1 });
 
     // Game Over maupun Win: simpan skor bila memecahkan rekor lama.
-    const { highScore, isNew } = saveHighScore(score);
+    const { highScore, previous, isNew } = saveHighScore(score);
 
-    this.add
-      .text(cx, cy - 100, win ? 'YOU WIN!' : 'GAME OVER', {
+    // --- Panel ---
+    this.add.rectangle(cx, PANEL.y + 8, PANEL.width, PANEL.height, 0x000000, 0.35); // bayangan
+    this.add.rectangle(cx, PANEL.y, PANEL.width, PANEL.height, COLORS.panel, 0.96).setStrokeStyle(4, accent);
+
+    // --- Judul & subjudul ---
+    const title = this.add
+      .text(cx, 160, win ? 'YOU WIN!' : 'GAME OVER', {
         fontFamily: FONT_FAMILY,
-        fontSize: '80px',
+        fontSize: '72px',
         fontStyle: 'bold',
         color: win ? '#4cd964' : '#ef476f',
-        stroke: '#16213e',
+        stroke: '#0b1020',
         strokeThickness: 10,
+      })
+      .setOrigin(0.5)
+      .setScale(0.6)
+      .setAlpha(0);
+    this.tweens.add({ targets: title, scale: 1, alpha: 1, duration: 420, ease: 'Back.easeOut' });
+
+    this.add
+      .text(cx, 218, win ? 'Semua level berhasil diselesaikan!' : `Waktu habis di Level ${level}`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '24px',
+        color: '#b8c4e8',
       })
       .setOrigin(0.5);
 
+    this.add.rectangle(cx, 248, PANEL.width - 160, 2, 0x2b3768);
+
+    // --- Skor akhir (count-up) ---
     this.add
-      .text(cx, cy - 20, `Skor: ${score}  •  ${win ? 'Semua level selesai' : `Level ${level}`}`, {
+      .text(cx, 274, 'SKOR AKHIR', {
         fontFamily: FONT_FAMILY,
-        fontSize: '32px',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        color: '#7aa9ff',
+      })
+      .setOrigin(0.5);
+
+    const scoreText = this.add
+      .text(cx, 324, '0', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '70px',
+        fontStyle: 'bold',
+        color: '#ffe066',
+        stroke: '#0b1020',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5);
+    if (score > 0) {
+      this.tweens.addCounter({
+        from: 0,
+        to: score,
+        duration: Math.min(1100, 350 + score),
+        ease: 'Cubic.easeOut',
+        onUpdate: (tween) => scoreText.setText(String(Math.round(tween.getValue()))),
+        onComplete: () => scoreText.setText(String(score)),
+      });
+    }
+
+    // --- Indikator rekor ---
+    if (isNew) {
+      this.showNewHighScore(cx, 382);
+      this.add
+        .text(cx, 428, previous > 0 ? `Rekor lama: ${previous}` : 'Rekor pertamamu!', {
+          fontFamily: FONT_FAMILY,
+          fontSize: '18px',
+          color: '#b8c4e8',
+        })
+        .setOrigin(0.5);
+    } else {
+      this.add
+        .text(cx, 386, `REKOR: ${highScore}`, {
+          fontFamily: FONT_FAMILY,
+          fontSize: '28px',
+          fontStyle: 'bold',
+          color: '#ffd166',
+        })
+        .setOrigin(0.5);
+      this.add
+        .text(cx, 422, score === highScore ? 'Skormu menyamai rekor!' : `Kurang ${highScore - score} poin untuk memecahkan rekor`, {
+          fontFamily: FONT_FAMILY,
+          fontSize: '18px',
+          color: '#b8c4e8',
+        })
+        .setOrigin(0.5);
+    }
+
+    // --- Statistik permainan ---
+    const stats = [
+      ['LEVEL', `${win ? MAX_LEVEL : level} / ${MAX_LEVEL}`],
+      ['PASANGAN', String(Math.floor(score / GAMEPLAY.pairScore))],
+      ['SISA WAKTU', formatTime(win ? timeLeft : 0)],
+    ];
+    stats.forEach(([label, value], i) => this.createStatBox(cx + (i - 1) * 218, 486, 200, 76, label, value));
+
+    // --- Tombol ---
+    const buttonOpts = { width: 270, height: 64, fontSize: 28 };
+    createButton(this, cx - 150, 590, 'PLAY AGAIN', () => this.playAgain(), {
+      ...buttonOpts,
+      color: COLORS.success,
+      hoverColor: 0x7aea8c,
+    });
+    createButton(this, cx + 150, 590, 'MAIN MENU', () => this.goToMenu(), buttonOpts);
+
+    this.add
+      .text(cx, GAME_HEIGHT - 22, 'ENTER: Main lagi   •   ESC: Menu utama', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '16px',
+        color: '#8899bb',
+      })
+      .setOrigin(0.5);
+
+    this.input.keyboard.once('keydown-ENTER', () => this.playAgain());
+    this.input.keyboard.once('keydown-ESC', () => this.goToMenu());
+  }
+
+  createStatBox(x, y, w, h, label, value) {
+    this.add.rectangle(x, y, w, h, 0x0f1730).setStrokeStyle(2, 0x2b3768);
+    this.add
+      .text(x, y - 19, label, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#7aa9ff',
+      })
+      .setOrigin(0.5);
+    this.add
+      .text(x, y + 10, value, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '30px',
+        fontStyle: 'bold',
         color: '#ffffff',
       })
       .setOrigin(0.5);
+  }
 
-    this.add
-      .text(cx, cy + 35, `High Score: ${highScore}`, {
-        fontFamily: FONT_FAMILY,
-        fontSize: '28px',
-        fontStyle: 'bold',
-        color: '#ffd166',
-      })
-      .setOrigin(0.5);
+  playAgain() {
+    // Data eksplisit: tanpa ini Phaser memakai ulang data start sebelumnya (level terakhir)
+    fadeToScene(this, SCENES.GAME, { level: 1, score: 0 }, 250);
+  }
 
-    if (isNew) this.showNewHighScore(cx, cy - 180);
-
-    createButton(this, cx, cy + 105, 'RESTART', () => {
-      // Data eksplisit: tanpa ini Phaser memakai ulang data start sebelumnya (level terakhir)
-      this.scene.start(SCENES.GAME, { level: 1, score: 0 });
-    }, { width: 300, height: 80, fontSize: 38 });
-
-    createButton(this, cx, cy + 200, 'MENU', () => {
-      this.scene.start(SCENES.MENU);
-    }, { width: 220, height: 56, fontSize: 24 });
+  goToMenu() {
+    fadeToScene(this, SCENES.MENU);
   }
 
   /** Teks "NEW HIGH SCORE!" berdenyut + confetti sederhana. */
@@ -62,7 +178,7 @@ export default class GameOverScene extends Phaser.Scene {
     const text = this.add
       .text(x, y, 'NEW HIGH SCORE!', {
         fontFamily: FONT_FAMILY,
-        fontSize: '44px',
+        fontSize: '40px',
         fontStyle: 'bold',
         color: '#ffd166',
         stroke: '#16213e',
@@ -82,8 +198,8 @@ export default class GameOverScene extends Phaser.Scene {
       onComplete: () => {
         this.tweens.add({
           targets: text,
-          scale: 1.12,
-          angle: { from: -3, to: 3 },
+          scale: 1.08,
+          angle: { from: -2, to: 2 },
           duration: 450,
           yoyo: true,
           repeat: -1,

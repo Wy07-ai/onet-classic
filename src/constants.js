@@ -61,6 +61,7 @@ export const SCENES = {
   BOOT: 'BootScene',
   PRELOAD: 'PreloadScene',
   MENU: 'MenuScene',
+  LEVEL_SELECT: 'LevelSelectScene',
   GAME: 'GameScene',
   GAME_OVER: 'GameOverScene',
   PAUSE: 'PauseScene',
@@ -75,6 +76,9 @@ export const COLORS = {
   accent: 0xffd166,
   danger: 0xef476f,
   line: 0xef476f,
+  success: 0x4cd964,
+  locked: 0x2a3150,
+  lockedStroke: 0x4a5272,
 };
 
 export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';

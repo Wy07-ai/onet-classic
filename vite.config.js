@@ -19,4 +19,4 @@ export default defineConfig({
     // Phaser memang besar (~1MB), naikkan batas peringatan
     chunkSizeWarningLimit: 1500,
   },
-});
+});

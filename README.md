@@ -63,6 +63,25 @@ Nama mode tampil sebagai subjudul saat banner level muncul. Bila setelah bergese
 - Dicek saat Game Over **maupun** Win (`GameOverScene`); hanya tersimpan jika skor > rekor lama.
 - `High Score: X` tampil di `MenuScene` dan `GameOverScene`; rekor baru memunculkan teks animasi **NEW HIGH SCORE!** + confetti.
 
+## Fase 6 — Level Select & UI Polish
+
+**Level Select** (`src/scenes/LevelSelectScene.js`)
+- Menu Utama punya tombol **SELECT LEVEL** (shortcut `L`); layar pilihan level punya tombol **BACK** (`ESC`).
+- Grid kartu level (`src/utils/levelGrid.js`): level terkunci berikon gembok, level selesai bercentang, level tertinggi yang terbuka berbingkai emas.
+- Progres disimpan di `localStorage` key `onet_unlocked_level` (`src/utils/levelProgress.js`). Menyelesaikan level N membuka level N+1;
+  progres tidak pernah turun, dibatasi `MAX_LEVEL`, aman bila storage diblokir/rusak (cadangan memori selama sesi).
+
+**UI Polish**
+- Latar bertema (`src/utils/background.js`) dipakai di Menu, Level Select, dan Game Over.
+- Semua tombol (`createButton`, tombol HUD) punya efek hover/press: scale tween + tint warna; klik batal bila pointer dilepas di luar tombol.
+- `GameOverScene`: panel berisi skor akhir (count-up), indikator rekor, statistik (level, pasangan, sisa waktu), tombol **PLAY AGAIN** / **MAIN MENU**.
+
+## Tes
+
+    npm test
+
+Atau jalankan satu per satu: `node tests/levelprogress.test.mjs`, `node tests/levelgrid.test.mjs`, dst.
+
 ## Tes logika (tanpa browser)
 
     node tests/logic.test.mjs

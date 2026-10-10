@@ -17,6 +17,7 @@ import { applyShift, countTiles, generateBoard, shuffleRemaining } from '../util
 import { applyBgmMute, getBgm, isMuted, toggleMuted } from '../utils/audioSettings.js';
 import { computeBoardLayout } from '../utils/boardLayout.js';
 import { createButton } from '../utils/createButton.js';
+import { completeLevelProgress } from '../utils/levelProgress.js';
 import { findPath, findValidPair } from '../utils/pathfinding.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -192,6 +193,7 @@ export default class GameScene extends Phaser.Scene {
   completeLevel() {
     this.isResolving = true; // timer berhenti selama modal tampil
     this.levelCompleteShown = true;
+    completeLevelProgress(this.level); // buka level berikutnya (tersimpan di localStorage)
     const next = getLevelConfig(this.level + 1);
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
