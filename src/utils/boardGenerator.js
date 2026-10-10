@@ -1,4 +1,4 @@
-import { BOARD_ROWS, BOARD_COLS } from '../constants.js';
+import { BOARD_ROWS, BOARD_COLS, SHIFT_MODES } from '../constants.js';
 import { findPath, findValidPair } from './pathfinding.js';
 
 /**
@@ -123,4 +123,69 @@ function forcePair(grid, cells, values, rng, assign) {
     }
   }
   return false;
+}
+
+/**
+ * Pergeseran tile (gravitasi) setelah pasangan dihapus. Mengubah `grid` IN-PLACE.
+ * Hanya area isi (di dalam border) yang diproses; border tetap kosong.
+ * Urutan relatif tile dalam satu baris/kolom selalu dipertahankan, jadi tile
+ * tidak pernah saling melewati (aman untuk di-tween).
+ *
+ * @param {number[][]} grid
+ * @param {string} mode salah satu SHIFT_MODES
+ * @param {number} border lebar border kosong
+ * @returns {{from: {r:number,c:number}, to: {r:number,c:number}, value:number}[]}
+ *   daftar tile yang benar-benar berpindah (kosong bila tidak ada / mode none).
+ */
+export function applyShift(grid, mode = SHIFT_MODES.NONE, border = 1) {
+  const moves = [];
+  if (!mode || mode === SHIFT_MODES.NONE) return moves;
+  const r0 = border;
+  const r1 = grid.length - border - 1;
+  const c0 = border;
+  const c1 = grid[0].length - border - 1;
+
+  // Pindahkan satu garis (kolom/baris) dengan daftar posisi `slots` berurutan.
+  // `offset` = indeks slot pertama yang dipakai tile (0 = rapat awal, dst).
+  const settle = (slots, offsetFor) => {
+    const items = slots.filter(([r, c]) => grid[r][c] !== 0);
+    const offset = offsetFor(items.length, slots.length);
+    const targets = items.map((_, i) => slots[offset + i]);
+    const values = items.map(([r, c]) => grid[r][c]);
+    for (const [r, c] of slots) grid[r][c] = 0;
+    items.forEach(([r, c], i) => {
+      const [tr, tc] = targets[i];
+      grid[tr][tc] = values[i];
+      if (tr !== r || tc !== c) moves.push({ from: { r, c }, to: { r: tr, c: tc }, value: values[i] });
+    });
+  };
+
+  const column = (c) => {
+    const s = [];
+    for (let r = r0; r <= r1; r++) s.push([r, c]);
+    return s;
+  };
+  const row = (r) => {
+    const s = [];
+    for (let c = c0; c <= c1; c++) s.push([r, c]);
+    return s;
+  };
+
+  switch (mode) {
+    case SHIFT_MODES.DOWN:
+      for (let c = c0; c <= c1; c++) settle(column(c), (n, total) => total - n);
+      break;
+    case SHIFT_MODES.LEFT:
+      for (let r = r0; r <= r1; r++) settle(row(r), () => 0);
+      break;
+    case SHIFT_MODES.RIGHT:
+      for (let r = r0; r <= r1; r++) settle(row(r), (n, total) => total - n);
+      break;
+    case SHIFT_MODES.CENTER:
+      for (let r = r0; r <= r1; r++) settle(row(r), (n, total) => Math.floor((total - n) / 2));
+      break;
+    default:
+      throw new Error(`Mode shift tidak dikenal: ${mode}`);
+  }
+  return moves;
 }

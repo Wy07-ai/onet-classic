@@ -11,17 +11,41 @@ export const GAMEPLAY = {
 };
 
 /**
+ * Mode pergeseran tile setelah sepasang tile dicocokkan.
+ *  - none   : tile tidak bergeser (klasik)
+ *  - down   : gravitasi bawah, tile di atas jatuh mengisi sel kosong
+ *  - left   : tile bergeser rapat ke kiri
+ *  - right  : tile bergeser rapat ke kanan
+ *  - center : tile tiap baris dirapatkan ke tengah (horizontal)
+ */
+export const SHIFT_MODES = {
+  NONE: 'none',
+  DOWN: 'down',
+  LEFT: 'left',
+  RIGHT: 'right',
+  CENTER: 'center',
+};
+
+export const SHIFT_LABELS = {
+  none: '',
+  down: 'Gravitasi: ke bawah',
+  left: 'Geser: ke kiri',
+  right: 'Geser: ke kanan',
+  center: 'Geser: ke tengah',
+};
+
+/**
  * Daftar level. Ukuran grid membesar & batas waktu mengecil seiring naik level.
  * Menyelesaikan level terakhir = menang. Ukuran tile dihitung otomatis
  * (lihat utils/boardLayout.js) supaya papan besar tetap muat di layar.
- * rows * cols harus genap.
+ * rows * cols harus genap. `shift` = salah satu SHIFT_MODES (default none).
  */
 export const LEVELS = [
-  { rows: 6, cols: 10, timeLimit: 120, tileTypes: 12 },
-  { rows: 8, cols: 12, timeLimit: 110, tileTypes: 16 },
-  { rows: 8, cols: 14, timeLimit: 100, tileTypes: 20 },
-  { rows: 10, cols: 14, timeLimit: 90, tileTypes: 24 },
-  { rows: 10, cols: 16, timeLimit: 80, tileTypes: 24 },
+  { rows: 6, cols: 10, timeLimit: 120, tileTypes: 12, shift: SHIFT_MODES.NONE },
+  { rows: 8, cols: 12, timeLimit: 110, tileTypes: 16, shift: SHIFT_MODES.NONE },
+  { rows: 8, cols: 14, timeLimit: 100, tileTypes: 20, shift: SHIFT_MODES.DOWN },
+  { rows: 10, cols: 14, timeLimit: 90, tileTypes: 24, shift: SHIFT_MODES.LEFT },
+  { rows: 10, cols: 16, timeLimit: 80, tileTypes: 24, shift: SHIFT_MODES.CENTER },
 ];
 export const MAX_LEVEL = LEVELS.length;
 
@@ -53,4 +77,4 @@ export const COLORS = {
   line: 0xef476f,
 };
 
-export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
+export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';

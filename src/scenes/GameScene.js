@@ -7,11 +7,13 @@ import {
   GAMEPLAY,
   MAX_LEVEL,
   SCENES,
+  SHIFT_LABELS,
+  SHIFT_MODES,
   getLevelConfig,
 } from '../constants.js';
 import Tile from '../components/Tile.js';
 import UIOverlay from '../components/UIOverlay.js';
-import { countTiles, generateBoard, shuffleRemaining } from '../utils/boardGenerator.js';
+import { applyShift, countTiles, generateBoard, shuffleRemaining } from '../utils/boardGenerator.js';
 import { applyBgmMute, getBgm, isMuted, toggleMuted } from '../utils/audioSettings.js';
 import { computeBoardLayout } from '../utils/boardLayout.js';
 import { createButton } from '../utils/createButton.js';
@@ -36,6 +38,7 @@ export default class GameScene extends Phaser.Scene {
     this.rows = config.rows;
     this.cols = config.cols;
     this.timeLimit = config.timeLimit;
+    this.shiftMode = config.shift ?? SHIFT_MODES.NONE;
     this.layout = computeBoardLayout(this.rows, this.cols);
     this.tileSize = this.layout.tileSize;
     this.boardX = this.layout.x;
@@ -142,6 +145,30 @@ export default class GameScene extends Phaser.Scene {
       hold: 520,
       onComplete: () => banner.destroy(),
     });
+
+    const label = SHIFT_LABELS[this.shiftMode];
+    if (label) {
+      const sub = this.add
+        .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 62, label, {
+          fontFamily: FONT_FAMILY,
+          fontSize: '28px',
+          fontStyle: 'bold',
+          color: '#ffd166',
+          stroke: '#16213e',
+          strokeThickness: 6,
+        })
+        .setOrigin(0.5)
+        .setDepth(30)
+        .setAlpha(0);
+      this.tweens.add({
+        targets: sub,
+        alpha: 1,
+        duration: 260,
+        yoyo: true,
+        hold: 520,
+        onComplete: () => sub.destroy(),
+      });
+    }
   }
 
   /** Mulai ulang scene dengan level & skor tertentu (dengan fade out singkat). */
@@ -191,10 +218,11 @@ export default class GameScene extends Phaser.Scene {
     );
     items.push(
       this.add
-        .text(cx, cy + 5, `Berikutnya: ${next.rows}x${next.cols}  •  ${next.timeLimit} detik`, {
+        .text(cx, cy + 5, `Berikutnya: ${next.rows}x${next.cols}  •  ${next.timeLimit} detik${SHIFT_LABELS[next.shift] ? `\n${SHIFT_LABELS[next.shift]}` : ''}`, {
           fontFamily: FONT_FAMILY,
           fontSize: '22px',
           color: '#b8c4e8',
+          align: 'center',
         })
         .setOrigin(0.5)
     );
@@ -321,17 +349,63 @@ export default class GameScene extends Phaser.Scene {
       this.hud.setTime(this.timeLeft, this.timeLimit);
       this.hud.floatText((first.x + second.x) / 2, (first.y + second.y) / 2, `+${GAMEPLAY.pairScore}`);
       second.vanish(() => {
-        this.isResolving = false;
+        // Tile tersisa bergeser mengisi ruang kosong (sesuai aturan level), baru input dibuka lagi.
+        this.shiftTiles(() => {
+          this.isResolving = false;
 
-        if (countTiles(this.grid) === 0) {
-          if (this.level >= MAX_LEVEL) this.finishGame(true);
-          else this.completeLevel();
-        } else if (!findValidPair(this.grid)) {
-          this.shuffleBoard(true);
-          this.hud.showToast('Papan diacak otomatis');
-        }
+          if (countTiles(this.grid) === 0) {
+            if (this.level >= MAX_LEVEL) this.finishGame(true);
+            else this.completeLevel();
+          } else if (!findValidPair(this.grid)) {
+            this.shuffleBoard(true);
+            this.hud.showToast('Papan diacak otomatis');
+          }
+        });
       });
     });
+  }
+
+  /**
+   * Terapkan mode pergeseran level ke grid, lalu animasikan tile yang berpindah
+   * dengan tween. `onDone` dipanggil setelah semua tween selesai
+   * (langsung dipanggil bila tidak ada yang bergerak).
+   */
+  shiftTiles(onDone) {
+    const moves = applyShift(this.grid, this.shiftMode);
+    if (moves.length === 0) {
+      onDone();
+      return;
+    }
+
+    // Ambil semua tile dulu sebelum map diubah (kunci lama & baru bisa bertabrakan).
+    const moving = moves.map((m) => ({ m, tile: this.tiles.get(this.key(m.from.r, m.from.c)) }));
+    for (const { m } of moving) this.tiles.delete(this.key(m.from.r, m.from.c));
+
+    const isDown = this.shiftMode === SHIFT_MODES.DOWN;
+    let pending = moving.length;
+    const done = () => {
+      if (--pending === 0) onDone();
+    };
+
+    for (const { m, tile } of moving) {
+      if (!tile) {
+        done();
+        continue;
+      }
+      this.tiles.set(this.key(m.to.r, m.to.c), tile);
+      const dist = Math.abs(m.to.r - m.from.r) + Math.abs(m.to.c - m.from.c);
+      tile.moveTo(
+        m.to.r,
+        m.to.c,
+        this.boardX + (m.to.c - 0.5) * this.tileSize,
+        this.boardY + (m.to.r - 0.5) * this.tileSize,
+        {
+          duration: Phaser.Math.Clamp(140 + dist * 60, 160, 420),
+          ease: isDown ? 'Bounce.easeOut' : 'Cubic.easeInOut',
+        },
+        done
+      );
+    }
   }
 
   createMatchEffects() {
@@ -418,4 +492,4 @@ export default class GameScene extends Phaser.Scene {
     this.isResolving = true;
     this.scene.start(SCENES.GAME_OVER, { win, score: this.score, timeLeft: this.timeLeft, level: this.level });
   }
-}
+}

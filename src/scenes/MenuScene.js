@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, FONT_FAMILY, COLORS } from '../constants.js';
 import { createButton } from '../utils/createButton.js';
+import { getHighScore } from '../utils/highScore.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -46,6 +47,17 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     this.add
+      .text(cx, cy + 190, `High Score: ${getHighScore()}`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '30px',
+        fontStyle: 'bold',
+        color: '#ffd166',
+        stroke: '#16213e',
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5);
+
+    this.add
       .text(cx, GAME_HEIGHT - 40, 'Klik PLAY atau tekan ENTER', {
         fontFamily: FONT_FAMILY,
         fontSize: '18px',
@@ -66,4 +78,4 @@ export default class MenuScene extends Phaser.Scene {
       this.scene.start(SCENES.GAME, { level: 1, score: 0 });
     });
   }
-}
+}

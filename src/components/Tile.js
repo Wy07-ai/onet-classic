@@ -116,6 +116,35 @@ export default class Tile extends Phaser.GameObjects.Container {
     });
   }
 
+  /**
+   * Pindah ke sel grid baru dengan tween halus (dipakai mekanik gravitasi/geser).
+   * Posisi grid (r, c) & homeX diperbarui langsung supaya state konsisten
+   * meski animasi belum selesai.
+   */
+  moveTo(r, c, x, y, { duration = 220, ease = 'Cubic.easeInOut' } = {}, onDone) {
+    this.stopHint();
+    this.scene.tweens.killTweensOf(this);
+    this.angle = 0;
+    this.alpha = 1;
+    this.invalid = false;
+    this.draw();
+    this.r = r;
+    this.c = c;
+    this.homeX = x;
+    this.scene.tweens.add({
+      targets: this,
+      x,
+      y,
+      duration,
+      ease,
+      onComplete: () => {
+        this.x = x;
+        this.y = y;
+        if (onDone) onDone();
+      },
+    });
+  }
+
   /** Animasi hilang (mengecil + memudar) lalu destroy. */
   vanish(onDone) {
     this.stopHint();
