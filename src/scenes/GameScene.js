@@ -32,6 +32,7 @@ export default class GameScene extends Phaser.Scene {
     this.selectedTile = null;
     this.tiles = new Map();
     this.grid = generateBoard(BOARD_ROWS, BOARD_COLS, GAMEPLAY.tileTypes);
+    this.startBackgroundMusic();
 
     this.add.rectangle(cx, this.boardY + (BOARD_ROWS * TILE_SIZE) / 2, BOARD_COLS * TILE_SIZE + 12, BOARD_ROWS * TILE_SIZE + 12, COLORS.panel)
       .setStrokeStyle(3, COLORS.primary);
@@ -63,9 +64,35 @@ export default class GameScene extends Phaser.Scene {
 
   update(_time, delta) {
     if (this.isResolving) return;
+    const previousSecond = Math.ceil(this.timeLeft);
     this.timeLeft = Math.max(0, this.timeLeft - delta / 1000);
     this.hud.setTime(this.timeLeft, GAMEPLAY.timeLimit);
+    const currentSecond = Math.ceil(this.timeLeft);
+    if (this.timeLeft > 0 && this.timeLeft < 10 && currentSecond !== previousSecond) {
+      this.playSfx('clock-tick', 0.5);
+    }
     if (this.timeLeft === 0) this.finishGame(false);
+  }
+
+  startBackgroundMusic() {
+    this.backgroundMusic = this.sound.add('bgm', { loop: true, volume: 0.22 });
+    const playMusic = () => {
+      if (this.backgroundMusic && !this.backgroundMusic.isPlaying) this.backgroundMusic.play();
+    };
+
+    if (this.sound.locked) this.sound.once('unlocked', playMusic);
+    else playMusic();
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sound.off('unlocked', playMusic);
+      this.backgroundMusic?.stop();
+      this.backgroundMusic?.destroy();
+      this.backgroundMusic = null;
+    });
+  }
+
+  playSfx(key, volume = 0.7) {
+    if (this.cache.audio.exists(key)) this.sound.play(key, { volume });
   }
 
   createTiles() {
@@ -87,6 +114,7 @@ export default class GameScene extends Phaser.Scene {
 
   selectTile(tile) {
     if (this.isResolving || !tile.active) return;
+    this.playSfx('tile-click', 0.55);
     if (this.selectedTile === tile) {
       tile.setSelected(false);
       this.selectedTile = null;
@@ -102,6 +130,7 @@ export default class GameScene extends Phaser.Scene {
     first.setSelected(false);
     this.selectedTile = null;
     if (first.value !== tile.value) {
+      this.playSfx('wrong');
       tile.shake();
       this.hud.showToast('Tile tidak cocok');
       return;
@@ -109,6 +138,7 @@ export default class GameScene extends Phaser.Scene {
 
     const path = findPath(this.grid, { r: first.r, c: first.c }, { r: tile.r, c: tile.c });
     if (!path) {
+      this.playSfx('wrong');
       first.shake();
       tile.shake();
       this.hud.showToast('Jalur terhalang');
@@ -119,6 +149,7 @@ export default class GameScene extends Phaser.Scene {
 
   removePair(first, second, path) {
     this.isResolving = true;
+    this.playSfx('match');
     this.showMatchPath(path, () => {
       this.matchParticles.explode(22, first.x, first.y);
       this.matchParticles.explode(22, second.x, second.y);
@@ -206,6 +237,7 @@ export default class GameScene extends Phaser.Scene {
       this.shufflesLeft--;
       this.hud.setShuffles(this.shufflesLeft);
     }
+    this.playSfx('shuffle');
     shuffleRemaining(this.grid);
     for (const tile of this.tiles.values()) tile.setValue(this.grid[tile.r][tile.c]);
     this.hud?.showToast(automatic ? 'Papan diacak' : 'Tile diacak');
@@ -218,6 +250,7 @@ export default class GameScene extends Phaser.Scene {
       this.shuffleBoard(true);
       return;
     }
+    this.playSfx('hint');
     this.tiles.get(this.key(pair.a.r, pair.a.c))?.startHint();
     this.tiles.get(this.key(pair.b.r, pair.b.c))?.startHint();
   }
