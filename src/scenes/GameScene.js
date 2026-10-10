@@ -42,7 +42,7 @@ export default class GameScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    this.pathGraphics = this.add.graphics().setDepth(10);
+    this.createMatchEffects();
     this.createTiles();
     this.hud = new UIOverlay(this, {
       x: 250,
@@ -119,28 +119,20 @@ export default class GameScene extends Phaser.Scene {
 
   removePair(first, second, path) {
     this.isResolving = true;
-    this.pathGraphics.clear();
-    this.pathGraphics.lineStyle(5, COLORS.accent, 1);
-    path.forEach((point, index) => {
-      const x = this.boardX + (point.c - 0.5) * TILE_SIZE;
-      const y = this.boardY + (point.r - 0.5) * TILE_SIZE;
-      if (index === 0) this.pathGraphics.beginPath().moveTo(x, y);
-      else this.pathGraphics.lineTo(x, y);
-    });
-    this.pathGraphics.strokePath();
-    this.time.delayedCall(160, () => {
-      this.pathGraphics.clear();
+    this.showMatchPath(path, () => {
+      this.matchParticles.explode(22, first.x, first.y);
+      this.matchParticles.explode(22, second.x, second.y);
       this.grid[first.r][first.c] = 0;
       this.grid[second.r][second.c] = 0;
       this.tiles.delete(this.key(first.r, first.c));
       this.tiles.delete(this.key(second.r, second.c));
       first.vanish();
+      this.score += GAMEPLAY.pairScore;
+      this.timeLeft = Math.min(GAMEPLAY.timeLimit, this.timeLeft + GAMEPLAY.timeBonus);
+      this.hud.setScore(this.score);
+      this.hud.setTime(this.timeLeft, GAMEPLAY.timeLimit);
+      this.hud.floatText((first.x + second.x) / 2, (first.y + second.y) / 2, `+${GAMEPLAY.pairScore}`);
       second.vanish(() => {
-        this.score += GAMEPLAY.pairScore;
-        this.timeLeft = Math.min(GAMEPLAY.timeLimit, this.timeLeft + GAMEPLAY.timeBonus);
-        this.hud.setScore(this.score);
-        this.hud.setTime(this.timeLeft, GAMEPLAY.timeLimit);
-        this.hud.floatText((first.x + second.x) / 2, first.y, `+${GAMEPLAY.pairScore}`);
         this.isResolving = false;
 
         if (countTiles(this.grid) === 0) {
@@ -150,6 +142,61 @@ export default class GameScene extends Phaser.Scene {
           this.hud.showToast('Papan diacak otomatis');
         }
       });
+    });
+  }
+
+  createMatchEffects() {
+    const textureKey = 'onet-match-particle';
+    if (!this.textures.exists(textureKey)) {
+      const particle = this.make.graphics({ x: 0, y: 0, add: false });
+      particle.fillStyle(0xffffff, 1);
+      particle.fillCircle(6, 6, 6);
+      particle.generateTexture(textureKey, 12, 12);
+      particle.destroy();
+    }
+
+    this.matchParticles = this.add.particles(0, 0, textureKey, {
+      angle: { min: 0, max: 360 },
+      speed: { min: 90, max: 250 },
+      lifespan: { min: 280, max: 460 },
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: [0x35f3ff, 0x9afff0, 0xffd166, 0xffffff],
+      blendMode: Phaser.BlendModes.ADD,
+      emitting: false,
+    }).setDepth(16);
+  }
+
+  showMatchPath(path, onComplete) {
+    const drawStroke = (width, color, alpha, depth) => {
+      const line = this.add.graphics().setDepth(depth);
+      line.lineStyle(width, color, alpha);
+      line.beginPath();
+      path.forEach((point, index) => {
+        const x = this.boardX + (point.c - 0.5) * TILE_SIZE;
+        const y = this.boardY + (point.r - 0.5) * TILE_SIZE;
+        if (index === 0) line.moveTo(x, y);
+        else line.lineTo(x, y);
+      });
+      line.strokePath();
+      return line;
+    };
+
+    const layers = [
+      drawStroke(14, 0x35f3ff, 0.2, 8),
+      drawStroke(6, 0x35f3ff, 0.9, 9),
+      drawStroke(2, 0xffffff, 1, 10),
+    ];
+    this.tweens.add({
+      targets: layers,
+      alpha: 0,
+      delay: 100,
+      duration: 280,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        layers.forEach((layer) => layer.destroy());
+        onComplete();
+      },
     });
   }
 

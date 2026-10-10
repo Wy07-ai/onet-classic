@@ -11,6 +11,7 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.c = c;
     this.selected = false;
     this.hinted = false;
+    this.invalid = false;
     this.hintTween = null;
 
     const half = TILE_SIZE / 2;
@@ -44,6 +45,8 @@ export default class Tile extends Phaser.GameObjects.Container {
       this.bg.lineStyle(4, COLORS.primaryHover, 1);
     } else if (this.hinted) {
       this.bg.lineStyle(4, COLORS.accent, 1);
+    } else if (this.invalid) {
+      this.bg.lineStyle(4, COLORS.danger, 1);
     } else {
       this.bg.lineStyle(2, 0x000000, 0.25);
     }
@@ -90,20 +93,28 @@ export default class Tile extends Phaser.GameObjects.Container {
 
   /** Getar horizontal + flash merah singkat (dipakai saat pasangan tidak cocok). */
   shake(onDone) {
+    this.stopHint();
+    this.scene.tweens.killTweensOf(this);
+    this.invalid = true;
+    this.draw();
     this.scene.tweens.add({
       targets: this,
-      x: { from: this.x - 5, to: this.x + 5 },
-      duration: 50,
+      x: { from: this.homeX - 6, to: this.homeX + 6 },
+      angle: { from: -4, to: 4 },
+      alpha: { from: 0.72, to: 1 },
+      duration: 45,
       yoyo: true,
-      repeat: 3,
+      repeat: 2,
+      ease: 'Sine.easeInOut',
       onComplete: () => {
         this.x = this.homeX;
+        this.angle = 0;
+        this.alpha = 1;
+        this.invalid = false;
+        this.draw();
         if (onDone) onDone();
       },
     });
-    const half = TILE_SIZE / 2;
-    this.bg.lineStyle(4, COLORS.danger, 1);
-    this.bg.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, 8);
   }
 
   /** Animasi hilang (mengecil + memudar) lalu destroy. */

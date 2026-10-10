@@ -126,15 +126,19 @@ export default class UIOverlay {
   /** Teks yang naik lalu memudar di posisi (x, y), mis. "+100". */
   floatText(x, y, msg, color = '#ffe066') {
     const t = this.scene.add
-      .text(x, y, msg, { fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color })
+      .text(x, y, msg, { fontFamily: FONT, fontSize: '32px', fontStyle: 'bold', color })
       .setOrigin(0.5)
-      .setStroke('#000000', 4)
+      .setStroke('#10172c', 5)
+      .setShadow(0, 3, '#000000', 8)
+      .setScale(0.72)
       .setDepth(DEPTH + 5);
     this.scene.tweens.add({
       targets: t,
-      y: y - 50,
+      y: y - 64,
       alpha: 0,
-      duration: 800,
+      scale: 1.12,
+      duration: 720,
+      ease: 'Cubic.easeOut',
       onComplete: () => t.destroy(),
     });
   }
