@@ -7,6 +7,13 @@ Game Onet Classic (Phaser 3 + Vite).
     npm install
     npm run dev
 
+## Deploy ke Vercel
+
+Impor repositori GitHub `Wy07-ai/onet-classic` dari dashboard Vercel. Konfigurasi di
+`vercel.json` akan memasang dependensi dengan `npm ci`, menjalankan `npm run build`,
+dan menerbitkan hasil build dari direktori `dist`. Setelah impor pertama, Vercel
+akan otomatis membuat deployment baru setiap kali perubahan di-push ke GitHub.
+
 ## Fase 3 — Gameplay & UI
 
 - **Timer bar** di atas papan; waktu habis -> `GameOverScene` (kalah) membawa `{ win, score, timeLeft, level }`.
