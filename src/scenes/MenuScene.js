@@ -5,6 +5,9 @@ import { getHighScore } from '../utils/highScore.js';
 import { getUnlockedLevel } from '../utils/levelProgress.js';
 import { addThemedBackground } from '../utils/background.js';
 import { fadeToScene } from '../utils/transitions.js';
+import { setupSceneCleanup } from '../utils/sceneCleanup.js';
+import { isTouchDevice } from '../utils/device.js';
+import { MENU_LAYOUT } from '../utils/uiLayout.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,6 +16,7 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_WIDTH / 2;
+    const cleanup = setupSceneCleanup(this);
 
     this.cameras.main.fadeIn(300);
     addThemedBackground(this);
@@ -63,22 +67,23 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Tombol PLAY -> GameScene, SELECT LEVEL -> LevelSelectScene
-    createButton(this, cx, 438, 'PLAY', () => this.startGame(), {
-      width: 320,
-      height: 80,
-      fontSize: 38,
+    const { play, levelSelect } = MENU_LAYOUT;
+    createButton(this, play.x, play.y, 'PLAY', () => this.startGame(), {
+      width: play.width,
+      height: play.height,
+      fontSize: play.fontSize,
       color: COLORS.success,
       hoverColor: 0x7aea8c,
     });
-    createButton(this, cx, 534, 'SELECT LEVEL', () => this.openLevelSelect(), {
-      width: 320,
-      height: 64,
-      fontSize: 28,
+    createButton(this, levelSelect.x, levelSelect.y, 'SELECT LEVEL', () => this.openLevelSelect(), {
+      width: levelSelect.width,
+      height: levelSelect.height,
+      fontSize: levelSelect.fontSize,
     });
 
     // Rekor & progres
     this.add
-      .text(cx, 614, `High Score: ${getHighScore()}`, {
+      .text(cx, 622, `High Score: ${getHighScore()}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '28px',
         fontStyle: 'bold',
@@ -88,7 +93,7 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(cx, 650, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
+      .text(cx, 658, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '20px',
         color: '#7aa9ff',
@@ -96,16 +101,16 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, GAME_HEIGHT - 22, 'ENTER: Main   •   L: Pilih Level', {
+      .text(cx, GAME_HEIGHT - 22, isTouchDevice(this) ? 'Ketuk PLAY untuk mulai' : 'ENTER: Main   •   L: Pilih Level', {
         fontFamily: FONT_FAMILY,
-        fontSize: '16px',
+        fontSize: '18px',
         color: '#8899bb',
       })
       .setOrigin(0.5);
 
     // Shortcut keyboard
-    this.input.keyboard.once('keydown-ENTER', () => this.startGame());
-    this.input.keyboard.once('keydown-L', () => this.openLevelSelect());
+    cleanup.once(this.input.keyboard, 'keydown-ENTER', () => this.startGame());
+    cleanup.once(this.input.keyboard, 'keydown-L', () => this.openLevelSelect());
   }
 
   startGame() {

@@ -4,6 +4,9 @@ import { createButton } from '../utils/createButton.js';
 import { saveHighScore } from '../utils/highScore.js';
 import { addThemedBackground } from '../utils/background.js';
 import { fadeToScene } from '../utils/transitions.js';
+import { setupSceneCleanup } from '../utils/sceneCleanup.js';
+import { isTouchDevice } from '../utils/device.js';
+import { GAME_OVER_LAYOUT } from '../utils/uiLayout.js';
 
 const PANEL = { y: 365, width: 720, height: 570 };
 
@@ -20,6 +23,7 @@ export default class GameOverScene extends Phaser.Scene {
   create({ win = false, score = 0, level = 1, timeLeft = 0 } = {}) {
     const cx = GAME_WIDTH / 2;
     const accent = win ? COLORS.success : COLORS.danger;
+    const cleanup = setupSceneCleanup(this);
 
     this.cameras.main.fadeIn(300);
     addThemedBackground(this, { alpha: 0.1 });
@@ -124,24 +128,25 @@ export default class GameOverScene extends Phaser.Scene {
     stats.forEach(([label, value], i) => this.createStatBox(cx + (i - 1) * 218, 486, 200, 76, label, value));
 
     // --- Tombol ---
-    const buttonOpts = { width: 270, height: 64, fontSize: 28 };
-    createButton(this, cx - 150, 590, 'PLAY AGAIN', () => this.playAgain(), {
-      ...buttonOpts,
+    const { playAgain, mainMenu } = GAME_OVER_LAYOUT;
+    const sizeOf = (spec) => ({ width: spec.width, height: spec.height, fontSize: spec.fontSize });
+    createButton(this, playAgain.x, playAgain.y, 'PLAY AGAIN', () => this.playAgain(), {
+      ...sizeOf(playAgain),
       color: COLORS.success,
       hoverColor: 0x7aea8c,
     });
-    createButton(this, cx + 150, 590, 'MAIN MENU', () => this.goToMenu(), buttonOpts);
+    createButton(this, mainMenu.x, mainMenu.y, 'MAIN MENU', () => this.goToMenu(), sizeOf(mainMenu));
 
     this.add
-      .text(cx, GAME_HEIGHT - 22, 'ENTER: Main lagi   •   ESC: Menu utama', {
+      .text(cx, GAME_HEIGHT - 22, isTouchDevice(this) ? 'Ketuk tombol untuk melanjutkan' : 'ENTER: Main lagi   •   ESC: Menu utama', {
         fontFamily: FONT_FAMILY,
-        fontSize: '16px',
+        fontSize: '18px',
         color: '#8899bb',
       })
       .setOrigin(0.5);
 
-    this.input.keyboard.once('keydown-ENTER', () => this.playAgain());
-    this.input.keyboard.once('keydown-ESC', () => this.goToMenu());
+    cleanup.once(this.input.keyboard, 'keydown-ENTER', () => this.playAgain());
+    cleanup.once(this.input.keyboard, 'keydown-ESC', () => this.goToMenu());
   }
 
   createStatBox(x, y, w, h, label, value) {
@@ -232,7 +237,7 @@ export default class GameOverScene extends Phaser.Scene {
       g.generateTexture(key, 10, 10);
       g.destroy();
     }
-    this.add
+    const confetti = this.add
       .particles(x, y, key, {
         angle: { min: 200, max: 340 },
         speed: { min: 180, max: 420 },
@@ -243,7 +248,9 @@ export default class GameOverScene extends Phaser.Scene {
         tint: [0xffd166, 0x35f3ff, 0xef476f, 0x4cd964, 0xffffff],
         emitting: false,
       })
-      .setDepth(19)
-      .explode(60);
+      .setDepth(19);
+    confetti.explode(60);
+    // Emitter yang sudah selesai tidak perlu ikut diproses tiap frame: buang setelah partikel terakhir hilang.
+    this.time.delayedCall(1600, () => confetti.destroy());
   }
 }

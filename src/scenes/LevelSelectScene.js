@@ -14,6 +14,9 @@ import { getUnlockedLevel } from '../utils/levelProgress.js';
 import { computeLevelGrid } from '../utils/levelGrid.js';
 import { addThemedBackground } from '../utils/background.js';
 import { fadeToScene } from '../utils/transitions.js';
+import { setupSceneCleanup } from '../utils/sceneCleanup.js';
+import { isTouchDevice } from '../utils/device.js';
+import { LEVEL_SELECT_LAYOUT } from '../utils/uiLayout.js';
 
 const GRID_AREA = { left: 40, right: GAME_WIDTH - 40, top: 190, bottom: 610, maxCols: 5, gap: 28 };
 
@@ -28,6 +31,10 @@ export default class LevelSelectScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_WIDTH / 2;
+    const cleanup = setupSceneCleanup(this, () => {
+      this.toast = null;
+    });
+    this.toast = null;
     this.cameras.main.fadeIn(250);
     addThemedBackground(this, { alpha: 0.12 });
 
@@ -61,23 +68,24 @@ export default class LevelSelectScene extends Phaser.Scene {
     });
 
     // --- Navigasi ---
-    createButton(this, 130, GAME_HEIGHT - 50, 'BACK', () => this.goBack(), {
-      width: 180,
-      height: 58,
-      fontSize: 26,
+    const { back } = LEVEL_SELECT_LAYOUT;
+    createButton(this, back.x, back.y, 'BACK', () => this.goBack(), {
+      width: back.width,
+      height: back.height,
+      fontSize: back.fontSize,
       color: 0x2f3d6e,
       hoverColor: 0x4458a0,
     });
 
     this.add
-      .text(cx, GAME_HEIGHT - 22, 'ESC: Kembali ke menu', {
+      .text(cx, GAME_HEIGHT - 22, isTouchDevice(this) ? 'Ketuk level untuk bermain' : 'ESC: Kembali ke menu', {
         fontFamily: FONT_FAMILY,
-        fontSize: '16px',
+        fontSize: '18px',
         color: '#8899bb',
       })
       .setOrigin(0.5);
 
-    this.input.keyboard.once('keydown-ESC', () => this.goBack());
+    cleanup.once(this.input.keyboard, 'keydown-ESC', () => this.goBack());
   }
 
   /**

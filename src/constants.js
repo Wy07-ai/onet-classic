@@ -1,5 +1,9 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
+
+// Area sentuh minimum (satuan game). HP landscape ~390px tinggi => skala ~0.54,
+// jadi 84 unit ≈ 45px layar (pedoman Apple 44pt / Material 48dp).
+export const TOUCH = { minTarget: 84 };
 export const TILE_SIZE = 64;
 export const BOARD_ROWS = 8;
 export const BOARD_COLS = 12;
@@ -55,7 +59,7 @@ export function getLevelConfig(level) {
 }
 
 // Area (px) tempat papan boleh digambar, di antara HUD atas dan tombol bawah.
-export const BOARD_AREA = { top: 104, bottom: 640, sideMargin: 40, panelPadding: 6 };
+export const BOARD_AREA = { top: 104, bottom: 636, sideMargin: 40, panelPadding: 6 };
 
 export const SCENES = {
   BOOT: 'BootScene',

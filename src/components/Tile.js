@@ -1,6 +1,21 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, COLORS } from '../constants.js';
 
+const BORDER_PAD = 4; // ruang ekstra di tepi texture agar garis tebal tidak terpotong
+
+/**
+ * Bingkai tile digambar SEKALI ke texture (per status & ukuran), lalu dipakai ulang
+ * sebagai Image biasa. Sebelumnya tiap tile punya objek Graphics yang di-tessellate
+ * ulang setiap frame (160 tile = 160 path rounded-rect per frame); Image ikut
+ * batching sprite sehingga jauh lebih ringan di HP.
+ */
+const BORDER_STYLES = {
+  normal: { width: 2, color: 0x000000, alpha: 0.25 },
+  selected: { width: 4, color: COLORS.primaryHover, alpha: 1 },
+  hint: { width: 4, color: COLORS.accent, alpha: 1 },
+  invalid: { width: 4, color: COLORS.danger, alpha: 1 },
+};
+
 /** Posisi grid disimpan di this.r / this.c. */
 export default class Tile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, value, r, c, size = TILE_SIZE) {
@@ -15,11 +30,12 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.invalid = false;
     this.hintTween = null;
 
-    this.bg = scene.add.graphics();
+    Tile.ensureBorderTextures(scene, size);
     this.sprite = scene.add.image(0, 0, 'animal-tiles', Tile.frameFor(value));
     this.sprite.setDisplaySize(size - 8, size - 8);
+    this.border = scene.add.image(0, 0, Tile.borderKey('normal', size));
 
-    this.add([this.sprite, this.bg]);
+    this.add([this.sprite, this.border]);
     this.setSize(size, size);
     this.setInteractive({ useHandCursor: true });
     this.draw();
@@ -30,6 +46,24 @@ export default class Tile extends Phaser.GameObjects.Container {
     return (value - 1) % 24;
   }
 
+  static borderKey(state, size) {
+    return `onet-tile-border-${state}-${size}`;
+  }
+
+  /** Buat texture bingkai untuk ukuran ini bila belum ada (cache texture dipakai bersama semua scene). */
+  static ensureBorderTextures(scene, size) {
+    const total = size + BORDER_PAD * 2;
+    for (const [state, style] of Object.entries(BORDER_STYLES)) {
+      const key = Tile.borderKey(state, size);
+      if (scene.textures.exists(key)) continue;
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.lineStyle(style.width, style.color, style.alpha);
+      g.strokeRoundedRect(BORDER_PAD, BORDER_PAD, size, size, 8);
+      g.generateTexture(key, total, total);
+      g.destroy();
+    }
+  }
+
   /** Ganti jenis tile (dipakai Shuffle). Posisi grid (r, c) tidak berubah. */
   setValue(value) {
     this.value = value;
@@ -38,18 +72,11 @@ export default class Tile extends Phaser.GameObjects.Container {
   }
 
   draw() {
-    const half = this.size / 2;
-    this.bg.clear();
-    if (this.selected) {
-      this.bg.lineStyle(4, COLORS.primaryHover, 1);
-    } else if (this.hinted) {
-      this.bg.lineStyle(4, COLORS.accent, 1);
-    } else if (this.invalid) {
-      this.bg.lineStyle(4, COLORS.danger, 1);
-    } else {
-      this.bg.lineStyle(2, 0x000000, 0.25);
-    }
-    this.bg.strokeRoundedRect(-half, -half, this.size, this.size, 8);
+    let state = 'normal';
+    if (this.selected) state = 'selected';
+    else if (this.hinted) state = 'hint';
+    else if (this.invalid) state = 'invalid';
+    this.border.setTexture(Tile.borderKey(state, this.size));
   }
 
   setSelected(flag) {
@@ -143,6 +170,13 @@ export default class Tile extends Phaser.GameObjects.Container {
         if (onDone) onDone();
       },
     });
+  }
+
+  /** Hentikan tween milik tile ini sebelum objek dibuang (mencegah callback ke objek mati). */
+  preDestroy() {
+    this.hintTween = null;
+    this.scene?.tweens?.killTweensOf(this);
+    super.preDestroy();
   }
 
   /** Animasi hilang (mengecil + memudar) lalu destroy. */

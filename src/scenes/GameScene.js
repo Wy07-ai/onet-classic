@@ -19,6 +19,8 @@ import { computeBoardLayout } from '../utils/boardLayout.js';
 import { createButton } from '../utils/createButton.js';
 import { completeLevelProgress } from '../utils/levelProgress.js';
 import { findPath, findValidPair } from '../utils/pathfinding.js';
+import { setupSceneCleanup } from '../utils/sceneCleanup.js';
+import { HUD_LAYOUT, LEVEL_COMPLETE_LAYOUT } from '../utils/uiLayout.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -31,6 +33,8 @@ export default class GameScene extends Phaser.Scene {
    */
   create(data = {}) {
     const cx = GAME_WIDTH / 2;
+    // Pembersihan saat scene ditutup/di-restart: lepas listener, buang HUD/tile/efek, null-kan referensi.
+    this.cleanup = setupSceneCleanup(this, () => this.releaseResources());
     this.cameras.main.fadeIn(250);
 
     // --- Level ---
@@ -84,23 +88,20 @@ export default class GameScene extends Phaser.Scene {
     });
     this.hud.setScore(this.score);
     this.hud.setTime(this.timeLeft, this.timeLimit);
-    createButton(this, 1130, 46, 'MENU', () => this.scene.start(SCENES.MENU), {
-      width: 150,
-      height: 44,
-      fontSize: 20,
-    });
+    this.menuBtn = createButton(this, HUD_LAYOUT.menu.x, HUD_LAYOUT.menu.y, 'MENU', () => this.scene.start(SCENES.MENU), {
+      width: HUD_LAYOUT.menu.width,
+      height: HUD_LAYOUT.menu.height,
+      fontSize: HUD_LAYOUT.menu.fontSize,
+    }).setDepth(20);
 
-    // Shortcut pause + sinkronkan HUD setelah toggle audio di menu pause
+    // Shortcut pause + sinkronkan HUD setelah toggle audio di menu pause.
+    // Semua listener lewat `this.cleanup` supaya otomatis dilepas saat shutdown.
     const onKey = (event) => {
       if (!event.repeat) this.pauseGame();
     };
-    this.input.keyboard.on('keydown-ESC', onKey);
-    this.input.keyboard.on('keydown-P', onKey);
-    const onResume = () => this.hud.syncAudio();
-    this.events.on(Phaser.Scenes.Events.RESUME, onResume);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.events.off(Phaser.Scenes.Events.RESUME, onResume);
-    });
+    this.cleanup.on(this.input.keyboard, 'keydown-ESC', onKey);
+    this.cleanup.on(this.input.keyboard, 'keydown-P', onKey);
+    this.cleanup.on(this.events, Phaser.Scenes.Events.RESUME, () => this.hud?.syncAudio());
 
     if (!findValidPair(this.grid)) this.shuffleBoard(true);
     this.showLevelBanner();
@@ -229,16 +230,16 @@ export default class GameScene extends Phaser.Scene {
         .setOrigin(0.5)
     );
     items.push(
-      createButton(this, cx, cy + 90, `LEVEL ${this.level + 1}`, () => this.goToNextLevel(), {
-        width: 300,
-        height: 72,
-        fontSize: 34,
+      createButton(this, LEVEL_COMPLETE_LAYOUT.next.x, LEVEL_COMPLETE_LAYOUT.next.y, `LEVEL ${this.level + 1}`, () => this.goToNextLevel(), {
+        width: LEVEL_COMPLETE_LAYOUT.next.width,
+        height: LEVEL_COMPLETE_LAYOUT.next.height,
+        fontSize: LEVEL_COMPLETE_LAYOUT.next.fontSize,
       })
     );
     items.forEach((item) => item.setDepth(40));
 
     this.cameras.main.flash(180, 255, 255, 255, true);
-    this.input.keyboard.once('keydown-ENTER', () => this.goToNextLevel());
+    this.cleanup.once(this.input.keyboard, 'keydown-ENTER', () => this.goToNextLevel());
   }
 
   goToNextLevel() {
@@ -265,16 +266,9 @@ export default class GameScene extends Phaser.Scene {
       if (this.backgroundMusic && !this.backgroundMusic.isPlaying) this.backgroundMusic.play();
     };
 
-    if (this.sound.locked) this.sound.once('unlocked', playMusic);
+    // Browser mobile mengunci audio sampai ada sentuhan pertama; listener dilepas otomatis saat shutdown.
+    if (this.sound.locked) this.cleanup.once(this.sound, 'unlocked', playMusic);
     else playMusic();
-
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.sound.off('unlocked', playMusic);
-      if (this.keepMusic) return;
-      this.backgroundMusic?.stop();
-      this.backgroundMusic?.destroy();
-      this.backgroundMusic = null;
-    });
   }
 
   playSfx(key, volume = 0.7) {
@@ -420,6 +414,13 @@ export default class GameScene extends Phaser.Scene {
       particle.destroy();
     }
 
+    // Tiga lapis garis jalur dibuat sekali & dipakai ulang tiap pasangan (tanpa membuat/membuang Graphics baru).
+    this.pathLayers = [
+      { width: 14, color: 0x35f3ff, alpha: 0.2, depth: 8 },
+      { width: 6, color: 0x35f3ff, alpha: 0.9, depth: 9 },
+      { width: 2, color: 0xffffff, alpha: 1, depth: 10 },
+    ].map((style) => ({ style, gfx: this.add.graphics().setDepth(style.depth).setVisible(false) }));
+
     this.matchParticles = this.add.particles(0, 0, textureKey, {
       angle: { min: 0, max: 360 },
       speed: { min: 90, max: 250 },
@@ -433,25 +434,18 @@ export default class GameScene extends Phaser.Scene {
   }
 
   showMatchPath(path, onComplete) {
-    const drawStroke = (width, color, alpha, depth) => {
-      const line = this.add.graphics().setDepth(depth);
-      line.lineStyle(width, color, alpha);
-      line.beginPath();
-      path.forEach((point, index) => {
-        const x = this.boardX + (point.c - 0.5) * this.tileSize;
-        const y = this.boardY + (point.r - 0.5) * this.tileSize;
-        if (index === 0) line.moveTo(x, y);
-        else line.lineTo(x, y);
-      });
-      line.strokePath();
-      return line;
-    };
-
-    const layers = [
-      drawStroke(14, 0x35f3ff, 0.2, 8),
-      drawStroke(6, 0x35f3ff, 0.9, 9),
-      drawStroke(2, 0xffffff, 1, 10),
-    ];
+    const points = path.map((point) => ({
+      x: this.boardX + (point.c - 0.5) * this.tileSize,
+      y: this.boardY + (point.r - 0.5) * this.tileSize,
+    }));
+    const layers = this.pathLayers.map(({ style, gfx }) => {
+      gfx.clear();
+      gfx.lineStyle(style.width, style.color, style.alpha);
+      gfx.beginPath();
+      points.forEach((p, index) => (index === 0 ? gfx.moveTo(p.x, p.y) : gfx.lineTo(p.x, p.y)));
+      gfx.strokePath();
+      return gfx.setAlpha(1).setVisible(true);
+    });
     this.tweens.add({
       targets: layers,
       alpha: 0,
@@ -459,7 +453,7 @@ export default class GameScene extends Phaser.Scene {
       duration: 280,
       ease: 'Cubic.easeOut',
       onComplete: () => {
-        layers.forEach((layer) => layer.destroy());
+        layers.forEach((gfx) => gfx.clear().setVisible(false));
         onComplete();
       },
     });
@@ -487,6 +481,31 @@ export default class GameScene extends Phaser.Scene {
     this.playSfx('hint');
     this.tiles.get(this.key(pair.a.r, pair.a.c))?.startHint();
     this.tiles.get(this.key(pair.b.r, pair.b.c))?.startHint();
+  }
+
+  /**
+   * Dipanggil sekali saat scene shutdown/destroy (lewat setupSceneCleanup). Listener di emitter
+   * panjang-umur sudah dilepas oleh `this.cleanup`; di sini objek & referensi yang tersisa dibuang.
+   */
+  releaseResources() {
+    // BGM: lanjut antar level (keepMusic), selain itu berhenti & dibuang.
+    if (!this.keepMusic) {
+      this.backgroundMusic?.stop();
+      this.backgroundMusic?.destroy();
+    }
+    this.backgroundMusic = null;
+
+    this.hud?.destroy();
+    this.hud = null;
+    this.menuBtn?.destroy();
+    this.menuBtn = null;
+    this.matchParticles?.destroy();
+    this.matchParticles = null;
+    this.pathLayers?.forEach(({ gfx }) => gfx.destroy());
+    this.pathLayers = null;
+    this.tiles?.forEach((tile) => tile.destroy());
+    this.tiles?.clear();
+    this.selectedTile = null;
   }
 
   finishGame(win) {

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, FONT_FAMILY } from '../constants.js';
+import { COLORS, FONT_FAMILY, TOUCH } from '../constants.js';
+import { hitPadding } from './uiLayout.js';
 
 /** Warna lebih gelap (dipakai sebagai warna "ditekan"). */
 export function darken(color, amount = 18) {
@@ -13,6 +14,10 @@ export function darken(color, amount = 18) {
  * Klik hanya dihitung bila pointer ditekan DAN dilepas di atas tombol yang sama
  * (menggeser pointer keluar sebelum melepas = batal).
  *
+ * Area sentuh (hit area) otomatis diperlebar sampai minimal `minTouch` (default
+ * TOUCH.minTarget) di tiap sumbu — tombol kecil tetap nyaman ditekan jari tanpa
+ * perlu digambar lebih besar.
+ *
  * @param {Phaser.Scene} scene
  * @param {Phaser.GameObjects.Container} target objek yang di-scale
  * @param {Phaser.GameObjects.Rectangle} hit shape yang menerima input & diwarnai
@@ -23,6 +28,7 @@ export function darken(color, amount = 18) {
 export function addButtonFeedback(scene, target, hit, opts) {
   const { baseColor, hoverColor, onClick } = opts;
   const pressColor = opts.pressColor ?? darken(baseColor);
+  const minTouch = opts.minTouch ?? TOUCH.minTarget;
   const hoverScale = opts.hoverScale ?? 1.06;
   const pressScale = opts.pressScale ?? 0.95;
   let enabled = true;
@@ -33,7 +39,13 @@ export function addButtonFeedback(scene, target, hit, opts) {
     scene.tweens.add({ targets: target, scale, duration, ease: 'Quad.easeOut' });
   };
 
-  hit.setInteractive({ useHandCursor: true });
+  // Hit area diperbesar di sekeliling shape (koordinat lokal, titik asal = pojok kiri-atas).
+  const pad = hitPadding(hit.width, hit.height, minTouch);
+  hit.setInteractive({
+    hitArea: new Phaser.Geom.Rectangle(-pad.x, -pad.y, hit.width + pad.x * 2, hit.height + pad.y * 2),
+    hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+    useHandCursor: true,
+  });
 
   hit.on('pointerover', () => {
     if (!enabled) return;

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../constants.js';
 import { createButton } from '../utils/createButton.js';
 import { audioLabel, isMuted } from '../utils/audioSettings.js';
+import { HUD_LAYOUT } from '../utils/uiLayout.js';
 
 const FONT = 'Arial, sans-serif';
 const DEPTH = 20;
@@ -10,6 +11,9 @@ const DEPTH = 20;
  * HUD game: timer bar, skor, indikator level, tombol Pause, toggle audio,
  * tombol Shuffle & Hint (bawah), toast, dan teks melayang.
  * Hanya menampilkan data; semua logika gameplay tetap di GameScene.
+ *
+ * Posisi & ukuran tombol ada di utils/uiLayout.js (HUD_LAYOUT); area sentuh
+ * tiap tombol otomatis diperlebar oleh createButton.
  */
 export default class UIOverlay {
   /**
@@ -30,7 +34,14 @@ export default class UIOverlay {
     this.barX = x;
     this.barW = width;
     this.barY = 14;
-    this.barH = 22;
+    this.barH = 24;
+    this.destroyed = false;
+    this.toast = null;
+    this.floaters = new Set();
+    // Cache nilai terakhir yang digambar: setTime() dipanggil tiap frame, jangan gambar ulang bila tak berubah.
+    this.lastFillWidth = -1;
+    this.lastFillColor = -1;
+    this.lastSecond = -1;
 
     // --- Timer bar ---
     this.barBg = scene.add.graphics().setDepth(DEPTH);
@@ -43,7 +54,7 @@ export default class UIOverlay {
     this.timeText = scene.add
       .text(x + width / 2, this.barY + this.barH / 2, '', {
         fontFamily: FONT,
-        fontSize: '16px',
+        fontSize: '18px',
         fontStyle: 'bold',
         color: '#ffffff',
       })
@@ -53,9 +64,9 @@ export default class UIOverlay {
 
     // --- Skor ---
     this.scoreText = scene.add
-      .text(x, 62, 'SKOR: 0', {
+      .text(x, 70, 'SKOR: 0', {
         fontFamily: FONT,
-        fontSize: '28px',
+        fontSize: '30px',
         fontStyle: 'bold',
         color: '#ffe066',
       })
@@ -64,9 +75,9 @@ export default class UIOverlay {
 
     // --- Indikator level (sejajar dengan skor, rata kanan timer bar) ---
     this.levelText = scene.add
-      .text(x + width, 62, '', {
+      .text(x + width, 70, '', {
         fontFamily: FONT,
-        fontSize: '28px',
+        fontSize: '30px',
         fontStyle: 'bold',
         color: '#7aa9ff',
       })
@@ -74,33 +85,30 @@ export default class UIOverlay {
       .setDepth(DEPTH);
     this.setLevel(level);
 
-    // --- Tombol Pause (kiri atas) ---
-    this.pauseBtn = createButton(scene, 110, 46, 'PAUSE', () => onPause?.(), {
-      width: 150,
-      height: 44,
-      fontSize: 20,
-    }).setDepth(DEPTH);
-
-    // --- Toggle audio (kiri bawah) ---
-    const toggleOpts = { width: 170, height: 44, fontSize: 18 };
-    this.bgmBtn = createButton(scene, 110, GAME_HEIGHT - 42, '', () => onToggleBgm?.(), toggleOpts).setDepth(DEPTH);
-    this.sfxBtn = createButton(scene, 300, GAME_HEIGHT - 42, '', () => onToggleSfx?.(), toggleOpts).setDepth(DEPTH);
+    // --- Tombol atas & bawah ---
+    this.pauseBtn = this.makeButton(HUD_LAYOUT.pause, 'PAUSE', onPause);
+    this.bgmBtn = this.makeButton(HUD_LAYOUT.bgm, '', onToggleBgm);
+    this.sfxBtn = this.makeButton(HUD_LAYOUT.sfx, '', onToggleSfx);
+    this.shuffleBtn = this.makeButton(HUD_LAYOUT.shuffle, '', onShuffle);
+    this.hintBtn = this.makeButton(HUD_LAYOUT.hint, 'PETUNJUK', onHint);
     this.syncAudio();
-
-    // --- Tombol bawah ---
-    const by = GAME_HEIGHT - 42;
-    this.shuffleBtn = this.makeButton(GAME_WIDTH / 2 - 130, by, onShuffle);
-    this.hintBtn = this.makeButton(GAME_WIDTH / 2 + 130, by, onHint);
-    this.hintBtn.text.setText('PETUNJUK');
     this.setShuffles(shuffles);
+  }
+
+  /** Tombol HUD dari spesifikasi layout (posisi, ukuran, font). */
+  makeButton(spec, label, onClick) {
+    return createButton(this.scene, spec.x, spec.y, label, () => onClick?.(), {
+      width: spec.width,
+      height: spec.height,
+      fontSize: spec.fontSize,
+    }).setDepth(DEPTH);
   }
 
   /** Perbarui label tombol MUSIK / SFX sesuai status mute saat ini. */
   syncAudio() {
     [['bgm', this.bgmBtn], ['sfx', this.sfxBtn]].forEach(([channel, btn]) => {
-      const label = btn.list[1];
-      label.setText(audioLabel(this.scene, channel));
-      label.setColor(isMuted(this.scene, channel) ? '#ff9aa8' : '#ffffff');
+      btn.label.setText(audioLabel(this.scene, channel));
+      btn.label.setColor(isMuted(this.scene, channel) ? '#ff9aa8' : '#ffffff');
     });
   }
 
@@ -108,91 +116,45 @@ export default class UIOverlay {
     this.levelText.setText(`LEVEL ${n}`);
   }
 
-  makeButton(x, y, onClick) {
-    const btn = { enabled: true };
-    btn.text = this.scene.add
-      .text(x, y, '', {
-        fontFamily: FONT,
-        fontSize: '26px',
-        color: '#ffffff',
-        backgroundColor: '#3a56d4',
-        padding: { x: 22, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setDepth(DEPTH)
-      .setInteractive({ useHandCursor: true });
-    const tweenScale = (scale, duration = 90) => {
-      this.scene.tweens.killTweensOf(btn.text);
-      this.scene.tweens.add({ targets: btn.text, scale, duration, ease: 'Quad.easeOut' });
-    };
-    let pressed = false;
-    btn.text.on('pointerover', () => {
-      if (!btn.enabled) return;
-      btn.text.setBackgroundColor(pressed ? '#2c43b0' : '#5775f0');
-      tweenScale(pressed ? 0.95 : 1.06);
-    });
-    btn.text.on('pointerout', () => {
-      if (!btn.enabled) return;
-      btn.text.setBackgroundColor('#3a56d4');
-      tweenScale(1);
-    });
-    btn.text.on('pointerdown', () => {
-      if (!btn.enabled) return;
-      pressed = true;
-      btn.text.setBackgroundColor('#2c43b0');
-      tweenScale(0.95, 60);
-    });
-    btn.text.on('pointerup', () => {
-      if (!btn.enabled || !pressed) return;
-      pressed = false;
-      btn.text.setBackgroundColor('#5775f0');
-      tweenScale(1.06);
-      onClick();
-    });
-    btn.text.on('pointerupoutside', () => {
-      pressed = false;
-    });
-    return btn;
-  }
-
-  setButtonEnabled(btn, flag) {
-    btn.enabled = flag;
-    if (!flag) {
-      this.scene.tweens.killTweensOf(btn.text);
-      btn.text.setScale(1);
-    }
-    btn.text.setBackgroundColor(flag ? '#3a56d4' : '#3a3f55');
-    btn.text.setColor(flag ? '#ffffff' : '#8a8fa8');
-    btn.text.input.cursor = flag ? 'pointer' : 'default';
-  }
-
   setShuffles(n) {
-    this.shuffleBtn.text.setText(`ACAK (${n})`);
-    this.setButtonEnabled(this.shuffleBtn, n > 0);
+    this.shuffleBtn.label.setText(`ACAK (${n})`);
+    this.shuffleBtn.setEnabled(n > 0);
   }
 
+  /**
+   * Dipanggil setiap frame dari GameScene.update. Graphics hanya digambar ulang bila lebar
+   * bar (dibulatkan ke piksel) atau warnanya berubah, dan teks hanya bila detiknya berganti —
+   * bukan 60x per detik — supaya tidak membuang waktu frame.
+   */
   setTime(left, max) {
     const ratio = Phaser.Math.Clamp(left / max, 0, 1);
     const color = ratio > 0.5 ? 0x4cd964 : ratio > 0.2 ? 0xffcc00 : COLORS.line;
-    this.barFill.clear();
-    if (ratio > 0) {
-      this.barFill.fillStyle(color, 1);
-      this.barFill.fillRoundedRect(
-        this.barX + 2,
-        this.barY + 2,
-        Math.max(8, (this.barW - 4) * ratio),
-        this.barH - 4,
-        6
-      );
+    const fillWidth = ratio > 0 ? Math.max(8, Math.round((this.barW - 4) * ratio)) : 0;
+
+    if (fillWidth !== this.lastFillWidth || color !== this.lastFillColor) {
+      this.lastFillWidth = fillWidth;
+      this.lastFillColor = color;
+      this.barFill.clear();
+      if (fillWidth > 0) {
+        this.barFill.fillStyle(color, 1);
+        this.barFill.fillRoundedRect(this.barX + 2, this.barY + 2, fillWidth, this.barH - 4, 6);
+      }
     }
+
     const s = Math.ceil(left);
-    const mm = String(Math.floor(s / 60)).padStart(2, '0');
-    const ss = String(s % 60).padStart(2, '0');
-    this.timeText.setText(`${mm}:${ss}`);
+    if (s !== this.lastSecond) {
+      this.lastSecond = s;
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      this.timeText.setText(`${mm}:${ss}`);
+    }
   }
 
   setScore(n) {
     this.scoreText.setText(`SKOR: ${n}`);
+    // Satu tween saja: skor yang berubah beruntun tidak menumpuk tween.
+    this.scene.tweens.killTweensOf(this.scoreText);
+    this.scoreText.setScale(1);
     this.scene.tweens.add({
       targets: this.scoreText,
       scale: { from: 1.25, to: 1 },
@@ -209,6 +171,7 @@ export default class UIOverlay {
       .setShadow(0, 3, '#000000', 8)
       .setScale(0.72)
       .setDepth(DEPTH + 5);
+    this.floaters.add(t);
     this.scene.tweens.add({
       targets: t,
       y: y - 64,
@@ -216,12 +179,16 @@ export default class UIOverlay {
       scale: 1.12,
       duration: 720,
       ease: 'Cubic.easeOut',
-      onComplete: () => t.destroy(),
+      onComplete: () => {
+        this.floaters.delete(t);
+        t.destroy();
+      },
     });
   }
 
-  /** Pesan singkat di tengah layar yang memudar sendiri. */
+  /** Pesan singkat di tengah layar yang memudar sendiri. Toast baru menggantikan yang lama. */
   showToast(msg) {
+    this.clearToast();
     const t = this.scene.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, msg, {
         fontFamily: FONT,
@@ -233,12 +200,47 @@ export default class UIOverlay {
       })
       .setOrigin(0.5)
       .setDepth(DEPTH + 10);
+    this.toast = t;
     this.scene.tweens.add({
       targets: t,
       alpha: 0,
       delay: 1100,
       duration: 400,
-      onComplete: () => t.destroy(),
+      onComplete: () => {
+        if (this.toast === t) this.toast = null;
+        t.destroy();
+      },
     });
+  }
+
+  clearToast() {
+    if (!this.toast) return;
+    this.scene.tweens.killTweensOf(this.toast);
+    this.toast.destroy();
+    this.toast = null;
+  }
+
+  /** Buang semua objek HUD (Graphics, teks, tombol, tween yang masih jalan) dan lepas referensinya. */
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    const tweens = this.scene.tweens;
+    this.clearToast();
+    for (const t of this.floaters) {
+      tweens?.killTweensOf(t);
+      t.destroy();
+    }
+    this.floaters.clear();
+    const objects = [
+      this.barBg, this.barFill, this.timeText, this.scoreText, this.levelText,
+      this.pauseBtn, this.bgmBtn, this.sfxBtn, this.shuffleBtn, this.hintBtn,
+    ];
+    for (const obj of objects) {
+      tweens?.killTweensOf(obj);
+      obj?.destroy();
+    }
+    this.barBg = this.barFill = this.timeText = this.scoreText = this.levelText = null;
+    this.pauseBtn = this.bgmBtn = this.sfxBtn = this.shuffleBtn = this.hintBtn = null;
+    this.scene = null;
   }
 }

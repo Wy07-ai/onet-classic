@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants.js';
+import { isMobileDevice } from './device.js';
 
 const BG_KEY = 'onet-themed-bg';
 const FRAME_COUNT = 24; // jumlah frame di spritesheet animal-tiles
@@ -60,7 +61,10 @@ function ensureBackgroundTexture(scene) {
  * @param {{cols?: number, rows?: number, alpha?: number}} [options] sebaran tile hias
  * @returns {Phaser.GameObjects.Image[]} tile hias (untuk keperluan tes / kustomisasi)
  */
-export function addThemedBackground(scene, { cols = 7, rows = 4, alpha = 0.16 } = {}) {
+export function addThemedBackground(scene, options = {}) {
+  // HP/tablet: sebaran tile hias (tiap satu punya tween terus-menerus) dikurangi ~45% demi 60 FPS & baterai.
+  const lite = isMobileDevice(scene);
+  const { cols = lite ? 5 : 7, rows = lite ? 3 : 4, alpha = 0.16 } = options;
   ensureBackgroundTexture(scene);
   scene.add.image(0, 0, BG_KEY).setOrigin(0).setDepth(-100);
 
