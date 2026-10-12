@@ -18,11 +18,12 @@ const BORDER_STYLES = {
 
 /** Posisi grid disimpan di this.r / this.c. */
 export default class Tile extends Phaser.GameObjects.Container {
-  constructor(scene, x, y, value, r, c, size = TILE_SIZE) {
+  constructor(scene, x, y, value, r, c, size = TILE_SIZE, textureKey = 'animal-tiles') {
     super(scene, x, y);
     this.homeX = x;
     this.size = size;
     this.value = value;
+    this.textureKey = textureKey;
     this.r = r;
     this.c = c;
     this.selected = false;
@@ -31,7 +32,7 @@ export default class Tile extends Phaser.GameObjects.Container {
     this.hintTween = null;
 
     Tile.ensureBorderTextures(scene, size);
-    this.sprite = scene.add.image(0, 0, 'animal-tiles', Tile.frameFor(value));
+    this.sprite = scene.add.image(0, 0, textureKey, Tile.frameFor(value));
     this.sprite.setDisplaySize(size - 8, size - 8);
     this.border = scene.add.image(0, 0, Tile.borderKey('normal', size));
 
@@ -67,7 +68,7 @@ export default class Tile extends Phaser.GameObjects.Container {
   /** Ganti jenis tile (dipakai Shuffle). Posisi grid (r, c) tidak berubah. */
   setValue(value) {
     this.value = value;
-    this.sprite.setFrame(Tile.frameFor(value));
+    this.sprite.setTexture(this.textureKey, Tile.frameFor(value));
     this.draw();
   }
 

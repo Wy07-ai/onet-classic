@@ -8,6 +8,7 @@ import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
 import { MENU_LAYOUT } from '../utils/uiLayout.js';
+import { getSelectedMapTheme, MAP_THEMES, setSelectedMapTheme } from '../utils/mapThemes.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -20,12 +21,13 @@ export default class MenuScene extends Phaser.Scene {
 
     this.cameras.main.fadeIn(300);
     addThemedBackground(this);
+    const selectedTheme = getSelectedMapTheme();
 
     // Deretan tile hias yang melayang pelan di atas judul
     for (let i = 0; i < 5; i++) {
       const x = cx - 240 + i * 120;
       this.add.ellipse(x, 214, 70, 14, 0x000000, 0.28); // bayangan
-      const tile = this.add.image(x, 160, 'animal-tiles', i * 3).setScale(0.72);
+      const tile = this.add.image(x, 160, selectedTheme.textureKey, i * 3).setScale(0.72);
       this.tweens.add({
         targets: tile,
         y: tile.y - 12,
@@ -38,7 +40,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Judul
     const title = this.add
-      .text(cx, 285, 'ONET CLASSIC', {
+      .text(cx, 266, 'ONET CLASSIC', {
         fontFamily: FONT_FAMILY,
         fontSize: '92px',
         fontStyle: 'bold',
@@ -59,12 +61,48 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     this.add
-      .text(cx, 352, 'Sambungkan dua tile yang sama  •  maksimal 2 belokan', {
+      .text(cx, 332, 'Sambungkan dua tile yang sama  •  maksimal 2 belokan', {
         fontFamily: FONT_FAMILY,
         fontSize: '22px',
         color: '#b8c4e8',
       })
       .setOrigin(0.5);
+
+    this.add
+      .text(cx, 372, 'PILIH TEMA MAP', {
+        fontFamily: FONT_FAMILY,
+        fontSize: '20px',
+        fontStyle: 'bold',
+        color: '#ffd166',
+      })
+      .setOrigin(0.5);
+
+    const themeButtons = [
+      { theme: MAP_THEMES[0], layout: MENU_LAYOUT.themeFaces },
+      { theme: MAP_THEMES[1], layout: MENU_LAYOUT.themeCountries },
+      { theme: MAP_THEMES[2], layout: MENU_LAYOUT.themeFood },
+    ];
+    themeButtons.forEach(({ theme, layout }) => {
+      const isSelected = selectedTheme.id === theme.id;
+      createButton(
+        this,
+        layout.x,
+        layout.y,
+        `${theme.preview} ${theme.label}`,
+        () => {
+          if (getSelectedMapTheme().id === theme.id) return;
+          setSelectedMapTheme(theme.id);
+          this.scene.restart();
+        },
+        {
+          width: layout.width,
+          height: layout.height,
+          fontSize: layout.fontSize,
+          color: isSelected ? COLORS.success : COLORS.primary,
+          hoverColor: isSelected ? 0x7aea8c : COLORS.primaryHover,
+        }
+      );
+    });
 
     // Tombol PLAY -> GameScene, SELECT LEVEL -> LevelSelectScene
     const { play, levelSelect } = MENU_LAYOUT;
@@ -83,7 +121,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Rekor & progres
     this.add
-      .text(cx, 622, `High Score: ${getHighScore()}`, {
+      .text(cx, 651, `High Score: ${getHighScore()}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '28px',
         fontStyle: 'bold',
@@ -93,7 +131,7 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(cx, 658, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
+      .text(cx, 679, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '20px',
         color: '#7aa9ff',
@@ -101,9 +139,9 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, GAME_HEIGHT - 22, isTouchDevice(this) ? 'Ketuk PLAY untuk mulai' : 'ENTER: Main   •   L: Pilih Level', {
+      .text(cx, GAME_HEIGHT - 15, isTouchDevice(this) ? 'Ketuk PLAY untuk mulai' : 'ENTER: Main   •   L: Pilih Level', {
         fontFamily: FONT_FAMILY,
-        fontSize: '18px',
+        fontSize: '14px',
         color: '#8899bb',
       })
       .setOrigin(0.5);
@@ -114,7 +152,7 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   startGame() {
-    fadeToScene(this, SCENES.GAME, { level: 1, score: 0 }, 250);
+    fadeToScene(this, SCENES.GAME, { level: 1, score: 0, mapTheme: getSelectedMapTheme().id }, 250);
   }
 
   openLevelSelect() {

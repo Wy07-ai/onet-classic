@@ -21,6 +21,7 @@ import { completeLevelProgress } from '../utils/levelProgress.js';
 import { findPath, findValidPair } from '../utils/pathfinding.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { HUD_LAYOUT, LEVEL_COMPLETE_LAYOUT } from '../utils/uiLayout.js';
+import { getMapTheme, getSelectedMapTheme, MAP_THEMES } from '../utils/mapThemes.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -28,8 +29,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * @param {{level?: number, score?: number}} [data] level & skor yang dibawa
-   *   dari level sebelumnya. Tanpa data = mulai dari Level 1.
+   * @param {{level?: number, score?: number, mapTheme?: string}} [data] level,
+   *   skor, dan tema map. Tanpa data = mulai dari Level 1.
    */
   create(data = {}) {
     const cx = GAME_WIDTH / 2;
@@ -39,6 +40,10 @@ export default class GameScene extends Phaser.Scene {
 
     // --- Level ---
     this.level = Phaser.Math.Clamp(Math.floor(data.level ?? 1), 1, MAX_LEVEL);
+    const themeId = MAP_THEMES.some((theme) => theme.id === data.mapTheme)
+      ? data.mapTheme
+      : getSelectedMapTheme().id;
+    this.mapTheme = getMapTheme(themeId);
     const config = getLevelConfig(this.level);
     this.rows = config.rows;
     this.cols = config.cols;
@@ -181,7 +186,7 @@ export default class GameScene extends Phaser.Scene {
     this.keepMusic = true; // BGM lanjut terus antar level
     this.cameras.main.fadeOut(220);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.restart({ level, score });
+      this.scene.restart({ level, score, mapTheme: this.mapTheme.id });
     });
   }
 
@@ -282,7 +287,7 @@ export default class GameScene extends Phaser.Scene {
         const value = this.grid[r][c];
         const x = this.boardX + (c - 0.5) * this.tileSize;
         const y = this.boardY + (r - 0.5) * this.tileSize;
-        const tile = new Tile(this, x, y, value, r, c, this.tileSize);
+        const tile = new Tile(this, x, y, value, r, c, this.tileSize, this.mapTheme.textureKey);
         tile.on('pointerup', () => this.selectTile(tile));
         this.tiles.set(this.key(r, c), tile);
       }
