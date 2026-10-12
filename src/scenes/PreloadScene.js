@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { SCENES } from '../constants.js';
 import animalTilesUrl from '../assets/animal-tiles.svg';
+import faceTilesUrl from '../assets/face-tiles.svg';
+import countryTilesUrl from '../assets/country-tiles.svg';
+import foodTilesUrl from '../assets/food-tiles.svg';
 import backgroundMusicUrl from '../assets/audio/bgm.wav';
 import tileClickUrl from '../assets/audio/tile-click.wav';
 import matchUrl from '../assets/audio/match.wav';
@@ -19,6 +22,9 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 96,
       frameHeight: 96,
     });
+    this.load.spritesheet('face-tiles', faceTilesUrl, { frameWidth: 96, frameHeight: 96 });
+    this.load.spritesheet('country-tiles', countryTilesUrl, { frameWidth: 96, frameHeight: 96 });
+    this.load.spritesheet('food-tiles', foodTilesUrl, { frameWidth: 96, frameHeight: 96 });
     this.load.audio('bgm', backgroundMusicUrl);
     this.load.audio('tile-click', tileClickUrl);
     this.load.audio('match', matchUrl);

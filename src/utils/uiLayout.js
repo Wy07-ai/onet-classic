@@ -22,8 +22,11 @@ export const HUD_LAYOUT = {
 };
 
 export const MENU_LAYOUT = {
-  play: { x: CX, y: 432, width: 360, height: 88, fontSize: 40 },
-  levelSelect: { x: CX, y: 536, width: 360, height: 72, fontSize: 30 },
+  themeFaces: { x: 180, y: 420, width: 260, height: 64, fontSize: 16 },
+  themeCountries: { x: CX, y: 420, width: 260, height: 64, fontSize: 20 },
+  themeFood: { x: GAME_WIDTH - 180, y: 420, width: 300, height: 64, fontSize: 16 },
+  play: { x: CX, y: 510, width: 360, height: 76, fontSize: 38 },
+  levelSelect: { x: CX, y: 602, width: 360, height: 64, fontSize: 28 },
 };
 
 export const GAME_OVER_LAYOUT = {

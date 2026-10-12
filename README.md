@@ -83,6 +83,16 @@ Nama mode tampil sebagai subjudul saat banner level muncul. Bila setelah bergese
 - Semua tombol (`createButton`, tombol HUD) punya efek hover/press: scale tween + tint warna; klik batal bila pointer dilepas di luar tombol.
 - `GameOverScene`: panel berisi skor akhir (count-up), indikator rekor, statistik (level, pasangan, sisa waktu), tombol **PLAY AGAIN** / **MAIN MENU**.
 
+## Tema Map
+
+Pilih tema di menu utama sebelum bermain:
+
+- **Wajah** — emoji wajah bulat.
+- **Negara** — bendera dari 24 negara.
+- **Makanan & Minuman** — emoji makanan dan minuman.
+
+Tema yang dipilih disimpan di browser dan digunakan untuk semua level, termasuk saat memilih level tertentu atau mengulang level.
+
 ## Tes
 
     npm test

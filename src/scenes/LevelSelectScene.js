@@ -17,6 +17,7 @@ import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
 import { LEVEL_SELECT_LAYOUT } from '../utils/uiLayout.js';
+import { getSelectedMapTheme } from '../utils/mapThemes.js';
 
 const GRID_AREA = { left: 40, right: GAME_WIDTH - 40, top: 190, bottom: 610, maxCols: 5, gap: 28 };
 
@@ -262,7 +263,7 @@ export default class LevelSelectScene extends Phaser.Scene {
   }
 
   startLevel(level) {
-    fadeToScene(this, SCENES.GAME, { level, score: 0 }, 250);
+    fadeToScene(this, SCENES.GAME, { level, score: 0, mapTheme: getSelectedMapTheme().id }, 250);
   }
 
   goBack() {
