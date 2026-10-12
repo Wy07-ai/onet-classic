@@ -75,4 +75,13 @@ for (const [key, spec] of Object.entries(PAUSE_LAYOUT)) {
 }
 assert.ok(BOARD_AREA.bottom <= HUD_LAYOUT.shuffle.y - HUD_LAYOUT.shuffle.height / 2, 'papan harus berakhir di atas tombol bawah');
 
+// Pilihan tema adalah kontrol sekunder di bawah tombol aksi utama.
+const themeButtons = [MENU_LAYOUT.themeFaces, MENU_LAYOUT.themeCountries, MENU_LAYOUT.themeFood];
+for (const [key, spec] of Object.entries(MENU_LAYOUT)) {
+  if (key.startsWith('theme')) {
+    assert.ok(spec.y > MENU_LAYOUT.play.y && spec.y > MENU_LAYOUT.levelSelect.y, `${key}: tema harus berada di bawah tombol menu`);
+  }
+}
+assert.ok(themeButtons.every((spec) => spec.y === themeButtons[0].y), 'pilihan tema harus berada pada satu baris');
+
 console.log('OK — tata letak sentuh valid (tanpa tumpang-tindih, area sentuh >= ' + TOUCH.minTarget + ').');

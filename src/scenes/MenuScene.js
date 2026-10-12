@@ -69,7 +69,7 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 372, 'PILIH TEMA MAP', {
+      .text(cx, 541, 'PILIH TEMA MAP', {
         fontFamily: FONT_FAMILY,
         fontSize: '20px',
         fontStyle: 'bold',
@@ -121,7 +121,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Rekor & progres
     this.add
-      .text(cx, 651, `High Score: ${getHighScore()}`, {
+      .text(cx, 645, `High Score: ${getHighScore()}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '28px',
         fontStyle: 'bold',
@@ -131,7 +131,7 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(cx, 679, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
+      .text(cx, 673, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '20px',
         color: '#7aa9ff',

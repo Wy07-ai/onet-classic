@@ -22,11 +22,11 @@ export const HUD_LAYOUT = {
 };
 
 export const MENU_LAYOUT = {
-  themeFaces: { x: 180, y: 420, width: 260, height: 64, fontSize: 16 },
-  themeCountries: { x: CX, y: 420, width: 260, height: 64, fontSize: 20 },
-  themeFood: { x: GAME_WIDTH - 180, y: 420, width: 300, height: 64, fontSize: 16 },
-  play: { x: CX, y: 510, width: 360, height: 76, fontSize: 38 },
-  levelSelect: { x: CX, y: 602, width: 360, height: 64, fontSize: 28 },
+  play: { x: CX, y: 398, width: 360, height: 76, fontSize: 38 },
+  levelSelect: { x: CX, y: 486, width: 360, height: 64, fontSize: 28 },
+  themeFaces: { x: 210, y: 580, width: 260, height: 56, fontSize: 16 },
+  themeCountries: { x: CX, y: 580, width: 260, height: 56, fontSize: 18 },
+  themeFood: { x: GAME_WIDTH - 210, y: 580, width: 260, height: 56, fontSize: 16 },
 };
 
 export const GAME_OVER_LAYOUT = {
