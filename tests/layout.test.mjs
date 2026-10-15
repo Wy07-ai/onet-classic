@@ -82,5 +82,7 @@ assert.ok(MENU_LAYOUT.settings.y > MENU_LAYOUT.play.y && MENU_LAYOUT.settings.y 
 const settingsThemes = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
 assert.ok(settingsThemes.every((spec) => spec.y === settingsThemes[0].y), 'pilihan tema harus berada pada satu baris');
 assert.ok(SETTINGS_LAYOUT.back.y > SETTINGS_LAYOUT.themeFaces.y, 'tombol kembali harus berada di bawah pilihan tema');
+assert.ok(SETTINGS_LAYOUT.close.x > GAME_WIDTH / 2, 'tombol tutup harus berada di pojok kanan modal');
+assert.ok(SETTINGS_LAYOUT.bgm.y === SETTINGS_LAYOUT.sfx.y, 'kontrol audio harus sejajar');
 
 console.log('OK — tata letak sentuh valid (tanpa tumpang-tindih, area sentuh >= ' + TOUCH.minTarget + ').');

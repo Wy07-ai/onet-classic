@@ -4,6 +4,7 @@ import { createButton } from '../utils/createButton.js';
 import { getHighScore } from '../utils/highScore.js';
 import { getUnlockedLevel } from '../utils/levelProgress.js';
 import { addThemedBackground } from '../utils/background.js';
+import { isMuted, toggleMuted } from '../utils/audioSettings.js';
 import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
@@ -19,17 +20,21 @@ export default class MenuScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const cleanup = setupSceneCleanup(this, () => {
       this.settingsObjects = null;
+      this.settingsThemeButtons = null;
+      this.decorativeTiles = null;
     });
 
     this.cameras.main.fadeIn(300);
     addThemedBackground(this);
     const selectedTheme = getSelectedMapTheme();
+    this.decorativeTiles = [];
 
     // Deretan tile hias yang melayang pelan di atas judul
     for (let i = 0; i < 5; i++) {
       const x = cx - 240 + i * 120;
       this.add.ellipse(x, 214, 70, 14, 0x000000, 0.28); // bayangan
       const tile = this.add.image(x, 160, selectedTheme.textureKey, i * 3).setScale(0.72);
+      this.decorativeTiles.push(tile);
       this.tweens.add({
         targets: tile,
         y: tile.y - 12,
@@ -120,6 +125,7 @@ export default class MenuScene extends Phaser.Scene {
     // Shortcut keyboard
     cleanup.once(this.input.keyboard, 'keydown-ENTER', () => this.startGame());
     cleanup.once(this.input.keyboard, 'keydown-L', () => this.openLevelSelect());
+    cleanup.on(this.input.keyboard, 'keydown-ESC', () => this.closeSettings());
   }
 
   openSettings() {
@@ -133,58 +139,126 @@ export default class MenuScene extends Phaser.Scene {
     this.settingsObjects = [];
 
     addSettingsObject(
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x080d1c, 0.78).setInteractive(),
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x080d1c, 0.82).setInteractive(),
       10
     );
     addSettingsObject(
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 1120, 480, COLORS.panel, 0.98).setStrokeStyle(4, COLORS.stroke),
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 1160, 620, COLORS.panel, 0.99).setStrokeStyle(4, COLORS.primary),
       11
     );
     addSettingsObject(
       this.add
-        .text(GAME_WIDTH / 2, 245, 'PENGATURAN', {
+        .text(GAME_WIDTH / 2, 90, 'PENGATURAN', {
           fontFamily: FONT_FAMILY,
-          fontSize: '38px',
+          fontSize: '36px',
           fontStyle: 'bold',
           color: '#ffffff',
         })
         .setOrigin(0.5)
     );
-    addSettingsObject(
-      this.add
-        .text(GAME_WIDTH / 2, 315, 'PILIH TEMA MAP', {
-          fontFamily: FONT_FAMILY,
-          fontSize: '22px',
-          fontStyle: 'bold',
-          color: '#ffd166',
-        })
-        .setOrigin(0.5)
-    );
 
-    const themeLayouts = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
-    MAP_THEMES.forEach((theme, index) => {
-      const layout = themeLayouts[index];
-      const isSelected = getSelectedMapTheme().id === theme.id;
+    const addSectionHeading = (y, label) => {
+      addSettingsObject(
+        this.add
+          .text(130, y, label, {
+            fontFamily: FONT_FAMILY,
+            fontSize: '20px',
+            fontStyle: 'bold',
+            color: '#ffd166',
+          })
+          .setOrigin(0, 0.5)
+      );
+    };
+    const addDivider = (y) => {
+      addSettingsObject(this.add.rectangle(GAME_WIDTH / 2, y, 1040, 2, 0x3b4d78, 0.9));
+    };
+
+    addSectionHeading(165, 'SEKSI 1: AUDIO');
+    addDivider(305);
+    addSectionHeading(345, 'SEKSI 2: TEMA TILE');
+    addDivider(490);
+    addSectionHeading(525, 'SEKSI 3: INFORMASI');
+
+    const audioButtons = {};
+    const addAudioToggle = (channel, layout, label) => {
       const button = createButton(
         this,
         layout.x,
         layout.y,
-        `${theme.preview} ${theme.label}`,
+        '',
         () => {
-          if (getSelectedMapTheme().id === theme.id) return;
-          setSelectedMapTheme(theme.id);
-          this.scene.restart();
+          toggleMuted(this, channel);
+          this.syncSettingsAudio(audioButtons);
         },
         {
           width: layout.width,
           height: layout.height,
           fontSize: layout.fontSize,
-          color: isSelected ? COLORS.success : COLORS.primary,
-          hoverColor: isSelected ? 0x7aea8c : COLORS.primaryHover,
+          color: COLORS.success,
+          hoverColor: 0x7aea8c,
         }
       );
+      button.audioLabel = label;
+      audioButtons[channel] = button;
+      addSettingsObject(button);
+    };
+    addAudioToggle('bgm', SETTINGS_LAYOUT.bgm, 'MUSIK LATAR');
+    addAudioToggle('sfx', SETTINGS_LAYOUT.sfx, 'EFEK SUARA');
+    this.syncSettingsAudio(audioButtons);
+
+    const close = SETTINGS_LAYOUT.close;
+    const closeButton = createButton(this, close.x, close.y, 'X', () => this.closeSettings(), {
+      width: close.width,
+      height: close.height,
+      fontSize: close.fontSize,
+      color: COLORS.danger,
+      hoverColor: 0xff7a96,
+    });
+    addSettingsObject(closeButton);
+
+    addSettingsObject(
+      this.add
+        .text(GAME_WIDTH / 2, 555, 'Onet Classic v0.1.0', {
+          fontFamily: FONT_FAMILY,
+          fontSize: '15px',
+          color: '#8899bb',
+        })
+        .setOrigin(0.5)
+    );
+
+    const themeLayouts = {
+      faces: SETTINGS_LAYOUT.themeFaces,
+      countries: SETTINGS_LAYOUT.themeCountries,
+      food: SETTINGS_LAYOUT.themeFood,
+    };
+    this.settingsThemeButtons = new Map();
+    MAP_THEMES.forEach((theme) => {
+      const layout = themeLayouts[theme.id];
+      const button = createButton(
+        this,
+        layout.x,
+        layout.y,
+        '',
+        () => {
+          if (getSelectedMapTheme().id === theme.id) return;
+          setSelectedMapTheme(theme.id);
+          this.decorativeTiles.forEach((tile, tileIndex) => {
+            tile.setTexture(theme.textureKey, tileIndex * 3);
+          });
+          this.syncSettingsThemes();
+        },
+        {
+          width: layout.width,
+          height: layout.height,
+          fontSize: layout.fontSize,
+          color: COLORS.primary,
+          hoverColor: COLORS.primaryHover,
+        }
+      );
+      this.settingsThemeButtons.set(theme.id, button);
       addSettingsObject(button);
     });
+    this.syncSettingsThemes();
 
     const back = SETTINGS_LAYOUT.back;
     const backButton = createButton(this, back.x, back.y, 'KEMBALI', () => this.closeSettings(), {
@@ -197,9 +271,30 @@ export default class MenuScene extends Phaser.Scene {
     addSettingsObject(backButton);
   }
 
+  syncSettingsAudio(buttons) {
+    for (const [channel, button] of Object.entries(buttons)) {
+      const muted = isMuted(this, channel);
+      button.label.setText(`${button.audioLabel}: ${muted ? 'OFF' : 'ON'}`);
+      button.label.setColor(muted ? '#ff9aa8' : '#ffffff');
+      button.bg.setFillStyle(muted ? COLORS.locked : COLORS.success);
+    }
+  }
+
+  syncSettingsThemes() {
+    const selectedTheme = getSelectedMapTheme();
+    for (const theme of MAP_THEMES) {
+      const button = this.settingsThemeButtons.get(theme.id);
+      const active = theme.id === selectedTheme.id;
+      button.label.setText(`${theme.preview} ${theme.label}${active ? '  ✓ AKTIF' : ''}`);
+      button.bg.setStrokeStyle(4, active ? COLORS.accent : COLORS.stroke);
+      button.bg.setFillStyle(active ? COLORS.success : COLORS.primary);
+    }
+  }
+
   closeSettings() {
     this.settingsObjects?.forEach((object) => object.destroy());
     this.settingsObjects = null;
+    this.settingsThemeButtons = null;
   }
 
   startGame() {

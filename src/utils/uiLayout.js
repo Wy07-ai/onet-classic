@@ -28,10 +28,13 @@ export const MENU_LAYOUT = {
 };
 
 export const SETTINGS_LAYOUT = {
-  themeFaces: { x: 250, y: 400, width: 300, height: 72, fontSize: 18 },
-  themeCountries: { x: CX, y: 400, width: 300, height: 72, fontSize: 20 },
-  themeFood: { x: GAME_WIDTH - 250, y: 400, width: 300, height: 72, fontSize: 18 },
-  back: { x: CX, y: 520, width: 280, height: 64, fontSize: 24 },
+  close: { x: 1110, y: 90, width: 64, height: 64, fontSize: 28 },
+  bgm: { x: 420, y: 245, width: 300, height: 72, fontSize: 20 },
+  sfx: { x: 860, y: 245, width: 300, height: 72, fontSize: 20 },
+  themeFaces: { x: 250, y: 410, width: 300, height: 72, fontSize: 18 },
+  themeCountries: { x: CX, y: 410, width: 300, height: 72, fontSize: 20 },
+  themeFood: { x: GAME_WIDTH - 250, y: 410, width: 300, height: 72, fontSize: 18 },
+  back: { x: CX, y: 610, width: 280, height: 64, fontSize: 24 },
 };
 
 export const GAME_OVER_LAYOUT = {
