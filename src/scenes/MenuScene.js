@@ -7,7 +7,7 @@ import { addThemedBackground } from '../utils/background.js';
 import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
-import { MENU_LAYOUT } from '../utils/uiLayout.js';
+import { MENU_LAYOUT, SETTINGS_LAYOUT } from '../utils/uiLayout.js';
 import { getSelectedMapTheme, MAP_THEMES, setSelectedMapTheme } from '../utils/mapThemes.js';
 
 export default class MenuScene extends Phaser.Scene {
@@ -17,7 +17,9 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     const cx = GAME_WIDTH / 2;
-    const cleanup = setupSceneCleanup(this);
+    const cleanup = setupSceneCleanup(this, () => {
+      this.settingsObjects = null;
+    });
 
     this.cameras.main.fadeIn(300);
     addThemedBackground(this);
@@ -68,44 +70,8 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.add
-      .text(cx, 541, 'PILIH TEMA MAP', {
-        fontFamily: FONT_FAMILY,
-        fontSize: '20px',
-        fontStyle: 'bold',
-        color: '#ffd166',
-      })
-      .setOrigin(0.5);
-
-    const themeButtons = [
-      { theme: MAP_THEMES[0], layout: MENU_LAYOUT.themeFaces },
-      { theme: MAP_THEMES[1], layout: MENU_LAYOUT.themeCountries },
-      { theme: MAP_THEMES[2], layout: MENU_LAYOUT.themeFood },
-    ];
-    themeButtons.forEach(({ theme, layout }) => {
-      const isSelected = selectedTheme.id === theme.id;
-      createButton(
-        this,
-        layout.x,
-        layout.y,
-        `${theme.preview} ${theme.label}`,
-        () => {
-          if (getSelectedMapTheme().id === theme.id) return;
-          setSelectedMapTheme(theme.id);
-          this.scene.restart();
-        },
-        {
-          width: layout.width,
-          height: layout.height,
-          fontSize: layout.fontSize,
-          color: isSelected ? COLORS.success : COLORS.primary,
-          hoverColor: isSelected ? 0x7aea8c : COLORS.primaryHover,
-        }
-      );
-    });
-
-    // Tombol PLAY -> GameScene, SELECT LEVEL -> LevelSelectScene
-    const { play, levelSelect } = MENU_LAYOUT;
+    // Tombol PLAY, SELECT LEVEL, dan SETTINGS.
+    const { play, levelSelect, settings } = MENU_LAYOUT;
     createButton(this, play.x, play.y, 'PLAY', () => this.startGame(), {
       width: play.width,
       height: play.height,
@@ -117,6 +83,11 @@ export default class MenuScene extends Phaser.Scene {
       width: levelSelect.width,
       height: levelSelect.height,
       fontSize: levelSelect.fontSize,
+    });
+    createButton(this, settings.x, settings.y, 'PENGATURAN', () => this.openSettings(), {
+      width: settings.width,
+      height: settings.height,
+      fontSize: settings.fontSize,
     });
 
     // Rekor & progres
@@ -149,6 +120,86 @@ export default class MenuScene extends Phaser.Scene {
     // Shortcut keyboard
     cleanup.once(this.input.keyboard, 'keydown-ENTER', () => this.startGame());
     cleanup.once(this.input.keyboard, 'keydown-L', () => this.openLevelSelect());
+  }
+
+  openSettings() {
+    if (this.settingsObjects) return;
+
+    const addSettingsObject = (object, depth = 12) => {
+      object.setDepth(depth);
+      this.settingsObjects.push(object);
+      return object;
+    };
+    this.settingsObjects = [];
+
+    addSettingsObject(
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x080d1c, 0.78).setInteractive(),
+      10
+    );
+    addSettingsObject(
+      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 1120, 480, COLORS.panel, 0.98).setStrokeStyle(4, COLORS.stroke),
+      11
+    );
+    addSettingsObject(
+      this.add
+        .text(GAME_WIDTH / 2, 245, 'PENGATURAN', {
+          fontFamily: FONT_FAMILY,
+          fontSize: '38px',
+          fontStyle: 'bold',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+    );
+    addSettingsObject(
+      this.add
+        .text(GAME_WIDTH / 2, 315, 'PILIH TEMA MAP', {
+          fontFamily: FONT_FAMILY,
+          fontSize: '22px',
+          fontStyle: 'bold',
+          color: '#ffd166',
+        })
+        .setOrigin(0.5)
+    );
+
+    const themeLayouts = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
+    MAP_THEMES.forEach((theme, index) => {
+      const layout = themeLayouts[index];
+      const isSelected = getSelectedMapTheme().id === theme.id;
+      const button = createButton(
+        this,
+        layout.x,
+        layout.y,
+        `${theme.preview} ${theme.label}`,
+        () => {
+          if (getSelectedMapTheme().id === theme.id) return;
+          setSelectedMapTheme(theme.id);
+          this.scene.restart();
+        },
+        {
+          width: layout.width,
+          height: layout.height,
+          fontSize: layout.fontSize,
+          color: isSelected ? COLORS.success : COLORS.primary,
+          hoverColor: isSelected ? 0x7aea8c : COLORS.primaryHover,
+        }
+      );
+      addSettingsObject(button);
+    });
+
+    const back = SETTINGS_LAYOUT.back;
+    const backButton = createButton(this, back.x, back.y, 'KEMBALI', () => this.closeSettings(), {
+      width: back.width,
+      height: back.height,
+      fontSize: back.fontSize,
+      color: COLORS.locked,
+      hoverColor: COLORS.primaryHover,
+    });
+    addSettingsObject(backButton);
+  }
+
+  closeSettings() {
+    this.settingsObjects?.forEach((object) => object.destroy());
+    this.settingsObjects = null;
   }
 
   startGame() {
