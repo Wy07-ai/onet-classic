@@ -11,6 +11,7 @@ import {
   MENU_LAYOUT,
   PAUSE_LAYOUT,
   PAUSE_PANEL,
+  SETTINGS_LAYOUT,
   hitPadding,
   hitRect,
   rectsOverlap,
@@ -19,6 +20,7 @@ import {
 const groups = {
   HUD: HUD_LAYOUT,
   Menu: MENU_LAYOUT,
+  Settings: SETTINGS_LAYOUT,
   GameOver: GAME_OVER_LAYOUT,
   Pause: PAUSE_LAYOUT,
   LevelSelect: LEVEL_SELECT_LAYOUT,
@@ -74,5 +76,11 @@ for (const [key, spec] of Object.entries(PAUSE_LAYOUT)) {
   assert.ok(r.left >= panel.left && r.right <= panel.right && r.top >= panel.top && r.bottom <= panel.bottom, `Pause.${key} keluar panel`);
 }
 assert.ok(BOARD_AREA.bottom <= HUD_LAYOUT.shuffle.y - HUD_LAYOUT.shuffle.height / 2, 'papan harus berakhir di atas tombol bawah');
+
+// Pengaturan tersedia di menu utama; pilihan tema berada di panel pengaturan.
+assert.ok(MENU_LAYOUT.settings.y > MENU_LAYOUT.play.y && MENU_LAYOUT.settings.y > MENU_LAYOUT.levelSelect.y);
+const settingsThemes = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
+assert.ok(settingsThemes.every((spec) => spec.y === settingsThemes[0].y), 'pilihan tema harus berada pada satu baris');
+assert.ok(SETTINGS_LAYOUT.back.y > SETTINGS_LAYOUT.themeFaces.y, 'tombol kembali harus berada di bawah pilihan tema');
 
 console.log('OK — tata letak sentuh valid (tanpa tumpang-tindih, area sentuh >= ' + TOUCH.minTarget + ').');
