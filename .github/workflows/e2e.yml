@@ -27,7 +27,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # npm install (not ci) so new @playwright/test is resolved even if
+        # package-lock.json has not yet been regenerated on this branch.
+        run: npm install
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
