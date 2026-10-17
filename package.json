@@ -20,10 +20,10 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
-    "c8": "^10.1.3",
+    "c8": "^12.0.0",
     "eslint": "^8.57.1",
     "prettier": "^3.4.2",
-    "vite": "^5.4.0"
+    "vite": "^8.3.4"
   },
   "engines": {
     "node": ">=18"
