@@ -1,6 +1,6 @@
 # Panduan Kontribusi
 
-Terima kasih sudah tertarik berkontribusi pada **Onet Classic**! Dokumen ini menjelaskan cara menyiapkan lingkungan lokal, alur kerja Git, standar commit, dan cara menjalankan pengujian.
+Terima kasih sudah tertarik berkontribusi pada **Onet Classic**! Dokumen ini menjelaskan cara menyiapkan lingkungan lokal, alur kerja Git, standar commit, pengujian, debugging, dan ringkasan arsitektur untuk maintainers.
 
 Dengan berpartisipasi, Anda setuju untuk mematuhi [Kode Etik](CODE_OF_CONDUCT.md).
 
@@ -12,9 +12,13 @@ Dengan berpartisipasi, Anda setuju untuk mematuhi [Kode Etik](CODE_OF_CONDUCT.md
 4. [Alur Kerja Git](#4-alur-kerja-git)
 5. [Conventional Commits](#5-conventional-commits)
 6. [Menjalankan Unit Test](#6-menjalankan-unit-test)
-7. [Gaya Kode](#7-gaya-kode)
-8. [Pull Request](#8-pull-request)
-9. [Melaporkan Bug & Mengusulkan Fitur](#9-melaporkan-bug--mengusulkan-fitur)
+7. [Linting & Formatting](#7-linting--formatting)
+8. [Gaya Kode](#8-gaya-kode)
+9. [Debugging](#9-debugging)
+10. [Ringkasan Arsitektur untuk Contributors](#10-ringkasan-arsitektur-untuk-contributors)
+11. [Asset Pipeline & Audio](#11-asset-pipeline--audio)
+12. [Pull Request](#12-pull-request)
+13. [Melaporkan Bug & Mengusulkan Fitur](#13-melaporkan-bug--mengusulkan-fitur)
 
 ---
 
@@ -35,13 +39,13 @@ Untuk perubahan besar (fitur baru, perubahan arsitektur), **buka issue terlebih 
 
 ### Prasyarat
 
-- **Node.js 18 atau lebih baru** (disarankan versi LTS terbaru). Vite 5 tidak mendukung Node di bawah 18.
-- **npm** (sudah termasuk dalam Node.js) dan **Git**.
+- **Node.js 18 atau lebih baru** (disarankan LTS). Vite 5 tidak mendukung Node di bawah 18.
+- **npm** (sudah termasuk Node.js) dan **Git**.
 
-Periksa versi Anda:
+Periksa versi:
 
 ```bash
-node -v
+node -v   # >= 18
 npm -v
 git --version
 ```
@@ -54,30 +58,49 @@ git clone https://github.com/<username-anda>/onet-classic.git
 cd onet-classic
 
 # 2. (Opsional) Tambahkan repositori asli sebagai remote "upstream"
-git remote add upstream https://github.com/OWNER/onet-classic.git
+git remote add upstream https://github.com/Wy07-ai/onet-classic.git
 
-# 3. Pasang dependensi
+# 3. Pastikan node_modules tidak terlacak (jika masih ada di indeks)
+git rm -r --cached node_modules 2>/dev/null || true
+
+# 4. Pasang dependensi
 npm install
 
-# 4. Jalankan server pengembangan
+# 5. Jalankan server pengembangan
 npm run dev
 ```
 
-`npm run dev` menjalankan Vite pada **http://localhost:5173** dan membuka browser otomatis. Perubahan kode dimuat ulang secara instan (HMR). Jika port 5173 sedang dipakai, lihat [TROUBLESHOOTING.md](TROUBLESHOOTING.md#1-konflik-port-vite--proses-node-menggantung).
+`npm run dev` menjalankan Vite pada **http://localhost:5173** (HMR). Jika port 5173 dipakai, lihat [TROUBLESHOOTING.md](TROUBLESHOOTING.md#1-konflik-port-vite--proses-node-menggantung).
 
-Saat mode dev, instance game tersedia di console browser sebagai `window.__ONET_GAME__` untuk keperluan debugging.
+Saat mode dev, instance game tersedia di console browser sebagai `window.__ONET_GAME__` untuk debugging.
+
+### Verifikasi cepat setelah setup
+
+```bash
+npm test
+npm run build
+npm run check:assets
+npm run lint
+```
 
 ## 3. Perintah NPM
 
-| Perintah          | Fungsi                                                              |
-| ----------------- | ------------------------------------------------------------------- |
-| `npm install`     | Memasang dependensi                                                 |
-| `npm run dev`     | Server pengembangan Vite (port 5173) dengan HMR                     |
-| `npm run build`   | Build produksi ke folder `dist/`                                    |
-| `npm run preview` | Menyajikan hasil build secara lokal untuk verifikasi                |
-| `npm test`        | Menjalankan seluruh unit test logika (8 berkas)                     |
+| Perintah | Fungsi |
+| -------- | ------ |
+| `npm install` | Memasang dependensi |
+| `npm run dev` | Server pengembangan Vite (port 5173) + HMR |
+| `npm run build` | Build produksi ke `dist/` |
+| `npm run preview` | Menyajikan hasil build secara lokal |
+| `npm test` | Seluruh unit test logika (9 berkas) |
+| `npm run test:coverage` | Test + coverage (c8 → `coverage/`) |
+| `npm run lint` | ESLint pada `src/`, `tests/`, `scripts/` |
+| `npm run lint:fix` | ESLint dengan auto-fix |
+| `npm run format` | Prettier write |
+| `npm run format:check` | Prettier check (CI) |
+| `npm run check:assets` | Validasi file audio/SVG + ukuran bundle |
+| `npm run ci` | Pipeline lokal penuh (lint + format + test + build + assets) |
 
-Regenerasi aset audio (hanya bila Anda mengubah `scripts/generate-audio-assets.mjs`):
+Regenerasi aset audio (hanya bila mengubah `scripts/generate-audio-assets.mjs`):
 
 ```bash
 node scripts/generate-audio-assets.mjs
@@ -92,7 +115,7 @@ node scripts/generate-audio-assets.mjs
    git pull upstream main
    ```
 
-2. **Buat branch** baru dari `main` dengan nama deskriptif memakai prefiks sesuai jenis perubahan:
+2. **Buat branch** baru dari `main` dengan nama deskriptif:
 
    ```text
    feat/mode-time-attack
@@ -100,19 +123,20 @@ node scripts/generate-audio-assets.mjs
    docs/perbarui-architecture
    refactor/pisahkan-hud
    test/tambah-kasus-pathfinding
+   chore/repo-ops-ci
    ```
 
-3. **Kerjakan perubahan** dalam commit-commit kecil dan fokus.
-4. **Jalankan `npm test`** dan pastikan `npm run build` berhasil.
-5. **Push** ke fork Anda dan **buka Pull Request** ke `main`.
-6. Tanggapi umpan balik reviewer dengan menambah commit pada branch yang sama.
+3. **Kerjakan perubahan** dalam commit kecil dan fokus.
+4. **Jalankan** `npm run ci` (atau minimal `npm test` + `npm run build`).
+5. **Push** ke fork dan **buka Pull Request** ke `main`.
+6. Tanggapi umpan balik reviewer dengan commit tambahan pada branch yang sama.
 
 Aturan umum:
 
 - Jangan commit langsung ke `main`.
-- Satu PR = satu tujuan. Hindari mencampur perbaikan bug dengan refactor besar.
-- Jangan commit `node_modules/`, `dist/`, atau berkas `*.local` (sudah diabaikan `.gitignore`).
-- Jangan menulis ulang (force-push) riwayat branch yang sudah ditinjau tanpa memberi tahu reviewer.
+- Satu PR = satu tujuan.
+- **Jangan commit** `node_modules/`, `dist/`, `coverage/`, atau berkas `*.local` (sudah di `.gitignore`).
+- Jangan force-push branch yang sudah ditinjau tanpa memberi tahu reviewer.
 
 ## 5. Conventional Commits
 
@@ -128,110 +152,145 @@ Proyek ini memakai [Conventional Commits 1.0.0](https://www.conventionalcommits.
 
 ### Tipe commit
 
-| Tipe        | Dipakai untuk                                                         | Dampak versi (SemVer) |
-| ----------- | --------------------------------------------------------------------- | --------------------- |
-| `feat`      | Fitur baru                                                            | MINOR                 |
-| `fix`       | Perbaikan bug                                                         | PATCH                 |
-| `docs`      | Perubahan dokumentasi saja                                            | -                     |
-| `style`     | Format/spasi/titik koma, tanpa perubahan logika                       | -                     |
-| `refactor`  | Perubahan kode tanpa menambah fitur atau memperbaiki bug              | -                     |
-| `perf`      | Peningkatan performa                                                  | PATCH                 |
-| `test`      | Menambah atau memperbaiki pengujian                                   | -                     |
-| `build`     | Perubahan sistem build/dependensi (Vite, `package.json`)              | -                     |
-| `ci`        | Perubahan konfigurasi CI                                              | -                     |
-| `chore`     | Pekerjaan rutin lain yang tidak mengubah kode sumber/test             | -                     |
-| `revert`    | Membatalkan commit sebelumnya                                         | -                     |
+| Tipe | Dipakai untuk | Dampak versi (SemVer) |
+| ---- | ------------- | --------------------- |
+| `feat` | Fitur baru | MINOR |
+| `fix` | Perbaikan bug | PATCH |
+| `docs` | Dokumentasi saja | - |
+| `style` | Format/spasi, tanpa perubahan logika | - |
+| `refactor` | Perubahan kode tanpa fitur/bug fix | - |
+| `perf` | Peningkatan performa | PATCH |
+| `test` | Menambah/memperbaiki pengujian | - |
+| `build` | Sistem build/dependensi | - |
+| `ci` | Konfigurasi CI | - |
+| `chore` | Pekerjaan rutin lain | - |
+| `revert` | Membatalkan commit sebelumnya | - |
 
-Perubahan yang memutus kompatibilitas ditandai dengan `!` setelah tipe/lingkup atau footer `BREAKING CHANGE:` (dampak MAJOR).
-
-### Lingkup yang disarankan
-
-`pathfinding`, `board`, `shift`, `scene`, `hud`, `audio`, `level`, `score`, `layout`, `build`, `deps`.
-
-### Contoh
-
-```text
-feat(shift): tambah mode shift 'right' pada level 6
-fix(pathfinding): cegah jalur menembus tile yang menghalangi
-fix(audio): tunda BGM sampai browser membuka kunci audio
-docs: perbarui diagram scene di ARCHITECTURE.md
-refactor(hud): pisahkan pembuatan tombol dari UIOverlay
-test(shift): tambah kasus baris kosong pada mode center
-perf(tile): gambar bingkai tile sekali sebagai tekstur
-build(deps): naikkan vite ke 5.4.x
-feat(level)!: ubah format konfigurasi LEVELS
-
-BREAKING CHANGE: properti `time` pada LEVELS diganti menjadi `timeLimit`.
-```
-
-Tips penulisan:
-
-- Gunakan huruf kecil pada tipe dan deskripsi; tanpa titik di akhir baris pertama.
-- Baris pertama maksimal ~72 karakter.
-- Tulis dalam bentuk perintah ("tambah", "perbaiki"), bukan lampau ("menambahkan", "sudah memperbaiki").
-- Tautkan issue di footer: `Closes #12`.
+Lingkup yang disarankan: `pathfinding`, `board`, `shift`, `scene`, `hud`, `audio`, `level`, `score`, `layout`, `build`, `deps`, `ci`.
 
 ## 6. Menjalankan Unit Test
 
-Pengujian berupa skrip Node murni yang memakai `node:assert/strict` (tanpa framework dan tanpa browser) dan hanya menguji logika yang bebas Phaser.
+Pengujian berupa skrip Node murni (`node:assert/strict`), tanpa framework dan tanpa browser — hanya menguji logika bebas Phaser.
 
 ```bash
-# Jalankan semua test
 npm test
+npm run test:coverage
 
-# Jalankan satu berkas saja
+# Satu berkas
 node tests/logic.test.mjs
 node tests/shift.test.mjs
-node tests/highscore.test.mjs
-node tests/levelprogress.test.mjs
-node tests/levelgrid.test.mjs
-node tests/levels.test.mjs
-node tests/layout.test.mjs
-node tests/cleanup.test.mjs
 ```
 
-Sebuah test dianggap **lulus** bila skrip selesai tanpa melempar error (kode keluar 0). `npm test` merangkai seluruh berkas dengan `&&`, jadi proses berhenti pada kegagalan pertama.
+Test lulus bila skrip selesai tanpa error (exit 0). `npm test` merangkai berkas dengan `&&`.
 
 ### Menambah test
 
-- Letakkan di `tests/<nama>.test.mjs` dan **daftarkan** ke skrip `test` di `package.json` (tambahkan `&& node tests/<nama>.test.mjs`); berkas yang tidak terdaftar tidak ikut `npm test`.
-- Tulis logika baru sebagai fungsi murni di `src/utils/` (tanpa `import Phaser`) agar mudah diuji di Node.
-- Untuk logika acak, gunakan RNG deterministik (parameter `rng`) agar hasil dapat diulang.
-- Setiap bug yang diperbaiki sebaiknya disertai test yang gagal sebelum perbaikan dan lulus sesudahnya.
-- Kode yang bergantung pada Phaser (tampilan, tween, input) diverifikasi manual di browser; cantumkan langkah verifikasinya di deskripsi PR.
+- Letakkan di `tests/<nama>.test.mjs` dan **daftarkan** ke skrip `test` di `package.json`.
+- Tulis logika baru sebagai fungsi murni di `src/utils/` (tanpa `import Phaser`).
+- Untuk logika acak, gunakan RNG deterministik (parameter `rng`).
+- Setiap bug fix sebaiknya disertai test yang gagal sebelum perbaikan.
 
-## 7. Gaya Kode
+## 7. Linting & Formatting
 
-- **ES Modules** (`import`/`export`), indentasi 2 spasi, titik koma, dan tanda kutip tunggal sesuai gaya kode yang sudah ada.
-- Konstanta gameplay, warna, level, dan nama scene ditaruh di `src/constants.js`; hindari angka "ajaib" yang tersebar.
-- Scene hanya mengorkestrasi; aturan permainan berada di `src/utils/`.
-- Setiap listener pada emitter di luar scene (`scene.events`, `scene.sound`, `registry`, dst.) **wajib** didaftarkan lewat `setupSceneCleanup` (`cleanup.on/once`) agar tidak menumpuk antar kunjungan scene.
-- Akses `localStorage` harus dibungkus `try/catch` (lihat `highScore.js` dan `levelProgress.js`).
-- Komentar ditulis dalam bahasa Indonesia agar konsisten dengan kode yang ada. Jelaskan *mengapa*, bukan sekadar *apa*.
-- Pertahankan 60 FPS pada perangkat mobile: hindari membuat objek `Graphics` per frame, pakai ulang objek bila memungkinkan.
+- **ESLint** (`.eslintrc.cjs`): aturan dasar + prefer-const, no-var, eqeqeq.
+- **Prettier** (`.prettierrc`): single quote, trailing comma es5, printWidth 100, LF.
 
-## 8. Pull Request
+```bash
+npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+```
+
+CI menjalankan lint dan format:check pada setiap PR.
+
+## 8. Gaya Kode
+
+- **ES Modules** (`import`/`export`), indentasi 2 spasi, titik koma, tanda kutip tunggal.
+- Konstanta gameplay, warna, level, nama scene di `src/constants.js`.
+- Scene hanya mengorkestrasi; aturan permainan di `src/utils/`.
+- Listener di luar scene **wajib** lewat `setupSceneCleanup` (`cleanup.on/once`).
+- Akses `localStorage` dibungkus `try/catch`.
+- Komentar dalam bahasa Indonesia; jelaskan *mengapa*, bukan sekadar *apa*.
+- Pertahankan 60 FPS di mobile: hindari `Graphics` per frame.
+
+## 9. Debugging
+
+### Di browser (dev)
+
+1. Buka DevTools (F12) → Console.
+2. `window.__ONET_GAME__` = instance Phaser.Game.
+3. Akses scene aktif: `window.__ONET_GAME__.scene.getScenes(true)`.
+4. Registry (mute, dll.): `window.__ONET_GAME__.registry.get('bgmMuted')`.
+
+### Masalah umum
+
+| Gejala | Langkah |
+| ------ | ------- |
+| Port 5173 dipakai | Lihat TROUBLESHOOTING.md atau `npx kill-port 5173` |
+| Audio tidak bunyi | Browser memblokir autoplay; klik di kanvas dulu |
+| Cache aset lama | Hard refresh (Ctrl+Shift+R) atau nonaktifkan cache di Network tab |
+| Test gagal setelah ubah util | Pastikan import path benar dan tidak ada side-effect Phaser |
+| Build gagal di CI | Jalankan `npm run ci` lokal; pastikan Node >= 18 |
+
+### Logika pathfinding / shift
+
+- Unit test di `tests/logic.test.mjs` dan `tests/shift.test.mjs` adalah tempat terbaik untuk mereproduksi kasus edge.
+- Gunakan `rng` tetap (mis. `() => 0.5`) agar hasil deterministik.
+
+## 10. Ringkasan Arsitektur untuk Contributors
+
+Detail lengkap ada di [ARCHITECTURE.md](ARCHITECTURE.md). Ringkasan untuk orientasi cepat:
+
+| Area | Lokasi | Catatan |
+| ---- | ------ | ------- |
+| Pathfinding (BFS 2-turn) | `src/utils/pathfinding.js` | Murni, diuji di Node |
+| Generate/shuffle/shift papan | `src/utils/boardGenerator.js` | Murni; `applyShift` mode: none/down/left/right/center |
+| High score | `src/utils/highScore.js` | localStorage + fallback memori |
+| Progres level | `src/utils/levelProgress.js` | localStorage key `onet_unlocked_level` |
+| Layout papan | `src/utils/boardLayout.js` | Ukuran tile dinamis |
+| Tema map | `src/utils/mapThemes.js` | Wajah / Negara / Makanan |
+| Audio mute | `src/utils/audioSettings.js` | Registry Phaser |
+| Scene cleanup | `src/utils/sceneCleanup.js` | Wajib untuk listener |
+| Konstanta & level | `src/constants.js` | GAMEPLAY, LEVELS, COLORS, SCENES |
+| Scene | `src/scenes/*.js` | Boot → Preload → Menu → LevelSelect → Game → Pause → GameOver |
+| Komponen UI | `src/components/Tile.js`, `UIOverlay.js` | |
+
+**Prinsip:** logika murni di `utils/` → scene hanya orkestrasi visual/input/audio.
+
+## 11. Asset Pipeline & Audio
+
+- **Spritesheet tile**: SVG di `src/assets/` (`*-tiles.svg`), frame 96×96, diimpor sebagai modul di PreloadScene agar di-hash Vite.
+- **Audio**: WAV di `src/assets/audio/` (bgm, tile-click, match, wrong, hint, shuffle, clock-tick).
+- **Generator**: `scripts/generate-audio-assets.mjs` membuat WAV prosedural. Jalankan ulang hanya jika mengubah generator; hasil commit ke repo agar build tidak bergantung pada regenerasi.
+- **Health check**: `npm run check:assets` memverifikasi file wajib ada, tidak kosong, dan (setelah build) ukuran bundle JS di `dist/`.
+
+Jangan commit file sementara editor atau export mentah ke `src/assets/` tanpa menyesuaikan PreloadScene dan daftar di `check-assets.mjs`.
+
+## 12. Pull Request
 
 Sebelum membuka PR, pastikan:
 
-- [ ] Branch berasal dari `main` terbaru dan diberi nama sesuai konvensi.
-- [ ] Commit mengikuti Conventional Commits.
-- [ ] `npm test` lulus dan `npm run build` berhasil.
-- [ ] Perubahan sudah dicoba manual di browser (`npm run dev`), idealnya juga di tampilan sentuh/ponsel.
-- [ ] Test baru ditambahkan untuk logika baru atau bug yang diperbaiki.
-- [ ] Dokumentasi diperbarui bila perlu (`ARCHITECTURE.md`, `README.md`, dsb.).
-- [ ] Entri ditambahkan di bagian `[Unreleased]` pada [CHANGELOG.md](CHANGELOG.md) untuk perubahan yang terlihat oleh pemain.
+- [ ] Branch berasal dari `main` terbaru, nama sesuai konvensi
+- [ ] Commit mengikuti Conventional Commits
+- [ ] `npm test` lulus dan `npm run build` berhasil
+- [ ] `npm run lint` lulus
+- [ ] Perubahan dicoba manual di browser (`npm run dev`)
+- [ ] Test baru untuk logika baru / bug fix
+- [ ] Dokumentasi diperbarui bila perlu
+- [ ] Entri `[Unreleased]` di CHANGELOG.md untuk perubahan yang terlihat pemain
 
-Deskripsi PR sebaiknya memuat: **apa** yang berubah, **mengapa**, cara memverifikasinya, dan tangkapan layar/GIF untuk perubahan visual.
+Template PR tersedia di `.github/PULL_REQUEST_TEMPLATE.md`.
 
-## 9. Melaporkan Bug & Mengusulkan Fitur
+## 13. Melaporkan Bug & Mengusulkan Fitur
 
-Saat membuka issue bug, sertakan:
+Gunakan template issue:
 
-- Langkah untuk mereproduksi, hasil yang diharapkan, dan hasil sebenarnya.
-- Browser & versinya, sistem operasi, serta jenis perangkat (desktop/ponsel).
-- Level yang sedang dimainkan dan tangkapan layar atau pesan error dari console browser.
+- **Bug**: `.github/ISSUE_TEMPLATE/bug_report.md`
+- **Fitur**: `.github/ISSUE_TEMPLATE/feature_request.md`
 
-Periksa [TROUBLESHOOTING.md](TROUBLESHOOTING.md) terlebih dahulu, karena masalah umum (port, audio, cache) biasanya sudah ada solusinya.
+Untuk bug, sertakan: langkah reproduksi, expected vs actual, browser/OS, level, dan pesan console.
+
+Periksa [TROUBLESHOOTING.md](TROUBLESHOOTING.md) terlebih dahulu.
 
 Terima kasih telah membantu membuat Onet Classic lebih baik!
