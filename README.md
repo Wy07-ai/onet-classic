@@ -3,6 +3,7 @@
 Game Onet Classic (Phaser 3 + Vite).
 
 [![CI](https://github.com/Wy07-ai/onet-classic/actions/workflows/ci.yml/badge.svg)](https://github.com/Wy07-ai/onet-classic/actions/workflows/ci.yml)
+[![E2E](https://github.com/Wy07-ai/onet-classic/actions/workflows/e2e.yml/badge.svg)](https://github.com/Wy07-ai/onet-classic/actions/workflows/e2e.yml)
 [![codecov](https://codecov.io/gh/Wy07-ai/onet-classic/branch/main/graph/badge.svg)](https://codecov.io/gh/Wy07-ai/onet-classic)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
 [![License](https://img.shields.io/github/license/Wy07-ai/onet-classic)](LICENSE)
@@ -31,6 +32,7 @@ Server development: **http://localhost:5173**
 | `npm run preview` | Preview hasil build |
 | `npm test` | Semua unit test logika |
 | `npm run test:coverage` | Test + laporan coverage (c8) |
+| `npm run test:e2e` | Playwright E2E (canvas smoke test) |
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier (write) |
 | `npm run format:check` | Prettier (check only) |
@@ -49,9 +51,37 @@ Preview deployment untuk setiap PR juga tersedia lewat integrasi Vercel (komenta
 ## CI & kualitas kode
 
 - **GitHub Actions** (`.github/workflows/ci.yml`): pada setiap push/PR ke `main` menjalankan `npm ci` → lint → test + coverage → build → health check aset, di Node 18/20/22.
+- **E2E** (`.github/workflows/e2e.yml`): build + Playwright smoke test (canvas muncul, tanpa console error) pada setiap push/PR ke `main`.
 - **Dependabot** (`.github/dependabot.yml`): update mingguan untuk npm dan GitHub Actions.
 - **Release**: tag `v*` memicu workflow release notes otomatis.
 - Coverage diunggah ke Codecov (badge di atas).
+
+## Tes E2E (Playwright)
+
+Smoke test memastikan game berhasil inisialisasi (canvas `#game-container` terlihat dan tidak ada `console.error`).
+
+**Lokal dengan dev server** (Playwright otomatis menjalankan `npm run dev` di port 5173):
+
+```bash
+npx playwright install chromium   # sekali saja
+npm run test:e2e
+```
+
+Atau jalankan dev server sendiri di terminal lain, lalu:
+
+```bash
+npm run dev                       # terminal 1
+npm run test:e2e                  # terminal 2 (reuseExistingServer)
+```
+
+**Lokal dengan preview build** (sama seperti CI):
+
+```bash
+npm run build
+PW_SERVER_COMMAND="npm run preview -- --host 127.0.0.1 --port 4173" PW_PORT=4173 npm run test:e2e
+```
+
+CI memakai mode preview (port 4173) agar hasil mendekati production build.
 
 ## Fase 3 — Gameplay & UI
 
