@@ -58,30 +58,28 @@ Preview deployment untuk setiap PR juga tersedia lewat integrasi Vercel (komenta
 
 ## Tes E2E (Playwright)
 
-Smoke test memastikan game berhasil inisialisasi (canvas `#game-container` terlihat dan tidak ada `console.error`).
+Smoke test memastikan canvas game terinisialisasi dengan ukuran positif dan tidak ada `console.error` saat halaman dimuat.
 
-**Lokal dengan dev server** (Playwright otomatis menjalankan `npm run dev` di port 5173):
-
-```bash
-npx playwright install chromium   # sekali saja
-npm run test:e2e
-```
-
-Atau jalankan dev server sendiri di terminal lain, lalu:
+**Dev mode** — jalankan di dua terminal:
 
 ```bash
-npm run dev                       # terminal 1
-npm run test:e2e                  # terminal 2 (reuseExistingServer)
+# Terminal A
+npm run dev
+
+# Terminal B
+npx playwright test --config=playwright.config.cjs
 ```
 
-**Lokal dengan preview build** (sama seperti CI):
+**Preview build** — untuk menguji hasil produksi seperti CI:
 
 ```bash
 npm run build
-PW_SERVER_COMMAND="npm run preview -- --host 127.0.0.1 --port 4173" PW_PORT=4173 npm run test:e2e
+npm run preview -- --port=4173
+npx playwright test
 ```
 
-CI memakai mode preview (port 4173) agar hasil mendekati production build.
+Pastikan Chromium Playwright tersedia terlebih dahulu dengan `npx playwright install chromium`. CI menjalankan E2E otomatis pada setiap pull request dan push ke `main`, menggunakan preview di port 4173. Jika port 4173 sedang dipakai, hentikan proses yang memakai port tersebut atau atur `PW_PORT` dan `PW_SERVER_COMMAND` secara konsisten. Jika canvas tidak muncul, periksa output build dan permintaan aset di browser/Playwright; jangan mengubah logika game hanya untuk meloloskan smoke test.
+
 
 ## Fase 3 — Gameplay & UI
 
