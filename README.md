@@ -2,10 +2,40 @@
 
 Game Onet Classic (Phaser 3 + Vite).
 
+[![CI](https://github.com/Wy07-ai/onet-classic/actions/workflows/ci.yml/badge.svg)](https://github.com/Wy07-ai/onet-classic/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Wy07-ai/onet-classic/branch/main/graph/badge.svg)](https://codecov.io/gh/Wy07-ai/onet-classic)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
+[![License](https://img.shields.io/github/license/Wy07-ai/onet-classic)](LICENSE)
+
 ## Menjalankan
 
-    npm install
-    npm run dev
+```bash
+npm install
+npm run dev
+```
+
+Server development: **http://localhost:5173**
+
+> **Penting:** Jangan commit `node_modules/` atau `dist/`. Pastikan `.gitignore` sudah aktif. Jika `node_modules` masih terlacak di repo, hapus dari indeks:
+> ```bash
+> git rm -r --cached node_modules
+> git commit -m "chore: stop tracking node_modules"
+> ```
+
+## Perintah NPM
+
+| Perintah | Fungsi |
+| -------- | ------ |
+| `npm run dev` | Server pengembangan Vite (HMR) |
+| `npm run build` | Build produksi → `dist/` |
+| `npm run preview` | Preview hasil build |
+| `npm test` | Semua unit test logika |
+| `npm run test:coverage` | Test + laporan coverage (c8) |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier (write) |
+| `npm run format:check` | Prettier (check only) |
+| `npm run check:assets` | Validasi aset audio/SVG + ukuran bundle |
+| `npm run ci` | Lint + format check + test coverage + build + assets |
 
 ## Deploy ke Vercel
 
@@ -13,6 +43,15 @@ Impor repositori GitHub `Wy07-ai/onet-classic` dari dashboard Vercel. Konfiguras
 `vercel.json` akan memasang dependensi dengan `npm ci`, menjalankan `npm run build`,
 dan menerbitkan hasil build dari direktori `dist`. Setelah impor pertama, Vercel
 akan otomatis membuat deployment baru setiap kali perubahan di-push ke GitHub.
+
+Preview deployment untuk setiap PR juga tersedia lewat integrasi Vercel (komentar di PR).
+
+## CI & kualitas kode
+
+- **GitHub Actions** (`.github/workflows/ci.yml`): pada setiap push/PR ke `main` menjalankan `npm ci` → lint → test + coverage → build → health check aset, di Node 18/20/22.
+- **Dependabot** (`.github/dependabot.yml`): update mingguan untuk npm dan GitHub Actions.
+- **Release**: tag `v*` memicu workflow release notes otomatis.
+- Coverage diunggah ke Codecov (badge di atas).
 
 ## Fase 3 — Gameplay & UI
 
@@ -95,13 +134,17 @@ Tema yang dipilih disimpan di browser dan digunakan untuk semua level, termasuk 
 
 ## Tes
 
-    npm test
+```bash
+npm test
+npm run test:coverage   # + laporan di coverage/
+```
 
 Atau jalankan satu per satu: `node tests/levelprogress.test.mjs`, `node tests/levelgrid.test.mjs`, dst.
 
-## Tes logika (tanpa browser)
+## Dokumentasi lanjutan
 
-    node tests/logic.test.mjs
-    node tests/levels.test.mjs
-    node tests/shift.test.mjs
-    node tests/highscore.test.mjs
+- [CONTRIBUTING.md](CONTRIBUTING.md) — setup, alur PR, gaya kode, debugging
+- [ARCHITECTURE.md](ARCHITECTURE.md) — desain teknis untuk maintainers
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — masalah umum (port, audio, cache)
+- [ROADMAP.md](ROADMAP.md) — rencana fitur
+- [SECURITY.md](SECURITY.md) — pelaporan celah keamanan

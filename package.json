@@ -7,12 +7,25 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/logic.test.mjs && node tests/levels.test.mjs && node tests/shift.test.mjs && node tests/highscore.test.mjs && node tests/levelprogress.test.mjs && node tests/levelgrid.test.mjs && node tests/layout.test.mjs && node tests/cleanup.test.mjs && node tests/mapthemes.test.mjs"
+    "test": "node tests/logic.test.mjs && node tests/levels.test.mjs && node tests/shift.test.mjs && node tests/highscore.test.mjs && node tests/levelprogress.test.mjs && node tests/levelgrid.test.mjs && node tests/layout.test.mjs && node tests/cleanup.test.mjs && node tests/mapthemes.test.mjs",
+    "test:coverage": "c8 --reporter=text --reporter=lcov --reporter=html npm test",
+    "lint": "eslint src tests scripts --ext .js,.mjs,.cjs",
+    "lint:fix": "eslint src tests scripts --ext .js,.mjs,.cjs --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:assets": "node scripts/check-assets.mjs",
+    "ci": "npm run lint && npm run format:check && npm run test:coverage && npm run build && npm run check:assets"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "c8": "^10.1.3",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
     "vite": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

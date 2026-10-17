@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting
+    url: https://github.com/Wy07-ai/onet-classic/blob/main/TROUBLESHOOTING.md
+    about: Cek panduan troubleshooting sebelum membuka issue.
+  - name: Security
+    url: https://github.com/Wy07-ai/onet-classic/blob/main/SECURITY.md
+    about: Laporkan celah keamanan lewat proses di SECURITY.md, bukan issue publik.
