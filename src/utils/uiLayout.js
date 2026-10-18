@@ -27,14 +27,17 @@ export const MENU_LAYOUT = {
   settings: { x: CX, y: 580, width: 360, height: 64, fontSize: 26 },
 };
 
+// Panel pengaturan 1160x620 (y 50..670). Urutan vertikal: judul, audio, tema, kembali.
+export const SETTINGS_PANEL = { x: CX, y: CY, width: 1160, height: 620 };
 export const SETTINGS_LAYOUT = {
   close: { x: 1110, y: 90, width: 64, height: 64, fontSize: 28 },
-  bgm: { x: 420, y: 245, width: 300, height: 72, fontSize: 20 },
-  sfx: { x: 860, y: 245, width: 300, height: 72, fontSize: 20 },
-  themeFaces: { x: 250, y: 410, width: 300, height: 72, fontSize: 18 },
-  themeCountries: { x: CX, y: 410, width: 300, height: 72, fontSize: 20 },
-  themeFood: { x: GAME_WIDTH - 250, y: 410, width: 300, height: 72, fontSize: 18 },
-  back: { x: CX, y: 610, width: 280, height: 64, fontSize: 24 },
+  bgm: { x: CX - 230, y: 214, width: 380, height: 64, fontSize: 22 },
+  sfx: { x: CX + 230, y: 214, width: 380, height: 64, fontSize: 22 },
+  // Kartu tema: tiga kartu sama lebar, jarak 40 antar kartu, berada di tengah panel.
+  themeFaces: { x: CX - 340, y: 405, width: 300, height: 130, fontSize: 22 },
+  themeCountries: { x: CX, y: 405, width: 300, height: 130, fontSize: 22 },
+  themeFood: { x: CX + 340, y: 405, width: 300, height: 130, fontSize: 22 },
+  back: { x: CX, y: 578, width: 280, height: 60, fontSize: 26 },
 };
 
 export const GAME_OVER_LAYOUT = {

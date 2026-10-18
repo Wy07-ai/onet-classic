@@ -8,7 +8,7 @@ import { isMuted, toggleMuted } from '../utils/audioSettings.js';
 import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
-import { MENU_LAYOUT, SETTINGS_LAYOUT } from '../utils/uiLayout.js';
+import { MENU_LAYOUT, SETTINGS_LAYOUT, SETTINGS_PANEL } from '../utils/uiLayout.js';
 import { getSelectedMapTheme, MAP_THEMES, setSelectedMapTheme } from '../utils/mapThemes.js';
 
 export default class MenuScene extends Phaser.Scene {
@@ -137,48 +137,52 @@ export default class MenuScene extends Phaser.Scene {
       return object;
     };
     this.settingsObjects = [];
+    const cx = GAME_WIDTH / 2;
 
+    // Latar gelap + panel
     addSettingsObject(
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x080d1c, 0.82).setInteractive(),
+      this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x080d1c, 0.82).setInteractive(),
       10
     );
     addSettingsObject(
-      this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 1160, 620, COLORS.panel, 0.99).setStrokeStyle(4, COLORS.primary),
+      this.add
+        .rectangle(SETTINGS_PANEL.x, SETTINGS_PANEL.y, SETTINGS_PANEL.width, SETTINGS_PANEL.height, COLORS.panel, 0.99)
+        .setStrokeStyle(4, COLORS.primary),
       11
     );
+
+    // Judul + garis aksen
     addSettingsObject(
       this.add
-        .text(GAME_WIDTH / 2, 90, 'PENGATURAN', {
+        .text(cx, 90, 'PENGATURAN', {
           fontFamily: FONT_FAMILY,
-          fontSize: '36px',
+          fontSize: '40px',
           fontStyle: 'bold',
           color: '#ffffff',
         })
         .setOrigin(0.5)
+        .setShadow(0, 4, '#4f8cff', 14, true, true)
     );
+    addSettingsObject(this.add.rectangle(cx, 122, 120, 4, COLORS.accent));
 
     const addSectionHeading = (y, label) => {
       addSettingsObject(
         this.add
-          .text(130, y, label, {
+          .text(cx, y, label, {
             fontFamily: FONT_FAMILY,
-            fontSize: '20px',
+            fontSize: '22px',
             fontStyle: 'bold',
             color: '#ffd166',
           })
-          .setOrigin(0, 0.5)
+          .setOrigin(0.5)
       );
     };
     const addDivider = (y) => {
-      addSettingsObject(this.add.rectangle(GAME_WIDTH / 2, y, 1040, 2, 0x3b4d78, 0.9));
+      addSettingsObject(this.add.rectangle(cx, y, 1040, 2, 0x3b4d78, 0.9));
     };
 
-    addSectionHeading(165, 'SEKSI 1: AUDIO');
-    addDivider(305);
-    addSectionHeading(345, 'SEKSI 2: TEMA TILE');
-    addDivider(490);
-    addSectionHeading(525, 'SEKSI 3: INFORMASI');
-
+    // Bagian 1: audio
+    addSectionHeading(152, 'AUDIO');
     const audioButtons = {};
     const addAudioToggle = (channel, layout, label) => {
       const button = createButton(
@@ -206,39 +210,24 @@ export default class MenuScene extends Phaser.Scene {
     addAudioToggle('sfx', SETTINGS_LAYOUT.sfx, 'EFEK SUARA');
     this.syncSettingsAudio(audioButtons);
 
-    const close = SETTINGS_LAYOUT.close;
-    const closeButton = createButton(this, close.x, close.y, 'X', () => this.closeSettings(), {
-      width: close.width,
-      height: close.height,
-      fontSize: close.fontSize,
-      color: COLORS.danger,
-      hoverColor: 0xff7a96,
-    });
-    addSettingsObject(closeButton);
+    addDivider(272);
 
-    addSettingsObject(
-      this.add
-        .text(GAME_WIDTH / 2, 555, 'Onet Classic v0.1.0', {
-          fontFamily: FONT_FAMILY,
-          fontSize: '15px',
-          color: '#8899bb',
-        })
-        .setOrigin(0.5)
-    );
-
+    // Bagian 2: tema map (tiga kartu dengan contoh tile)
+    addSectionHeading(308, 'PILIH TEMA MAP');
     const themeLayouts = {
       faces: SETTINGS_LAYOUT.themeFaces,
       countries: SETTINGS_LAYOUT.themeCountries,
       food: SETTINGS_LAYOUT.themeFood,
     };
+    const previewFrames = [0, 4, 8];
     this.settingsThemeButtons = new Map();
     MAP_THEMES.forEach((theme) => {
       const layout = themeLayouts[theme.id];
-      const button = createButton(
+      const card = createButton(
         this,
         layout.x,
         layout.y,
-        '',
+        theme.label,
         () => {
           if (getSelectedMapTheme().id === theme.id) return;
           setSelectedMapTheme(theme.id);
@@ -255,20 +244,65 @@ export default class MenuScene extends Phaser.Scene {
           hoverColor: COLORS.primaryHover,
         }
       );
-      this.settingsThemeButtons.set(theme.id, button);
-      addSettingsObject(button);
+
+      // Contoh tile di bagian atas kartu, label di bawahnya.
+      card.label.setY(layout.height / 2 - 30);
+      previewFrames.forEach((frame, index) => {
+        const sample = this.add.image((index - 1) * 74, -20, theme.textureKey, frame).setScale(0.62);
+        card.add(sample);
+      });
+
+      // Lencana centang di pojok kanan atas kartu aktif.
+      const badge = this.add.container(layout.width / 2 - 6, -layout.height / 2 + 6, [
+        this.add.circle(0, 0, 18, COLORS.accent).setStrokeStyle(3, COLORS.stroke),
+        this.add
+          .text(0, 0, '\u2713', { fontFamily: FONT_FAMILY, fontSize: '24px', fontStyle: 'bold', color: '#16213e' })
+          .setOrigin(0.5),
+      ]);
+      card.add(badge);
+      card.badge = badge;
+      // createButton mengembalikan warna dasar saat pointer keluar; sinkronkan agar kartu aktif tetap hijau.
+      card.bg.on('pointerout', () => this.settingsThemeButtons && this.syncSettingsThemes());
+
+      this.settingsThemeButtons.set(theme.id, card);
+      addSettingsObject(card);
     });
     this.syncSettingsThemes();
 
+    addDivider(495);
+
+    // Tombol tutup, kembali, dan versi
+    const close = SETTINGS_LAYOUT.close;
+    addSettingsObject(
+      createButton(this, close.x, close.y, 'X', () => this.closeSettings(), {
+        width: close.width,
+        height: close.height,
+        fontSize: close.fontSize,
+        color: COLORS.danger,
+        hoverColor: 0xff7a96,
+      })
+    );
+
     const back = SETTINGS_LAYOUT.back;
-    const backButton = createButton(this, back.x, back.y, 'KEMBALI', () => this.closeSettings(), {
-      width: back.width,
-      height: back.height,
-      fontSize: back.fontSize,
-      color: COLORS.locked,
-      hoverColor: COLORS.primaryHover,
-    });
-    addSettingsObject(backButton);
+    addSettingsObject(
+      createButton(this, back.x, back.y, 'KEMBALI', () => this.closeSettings(), {
+        width: back.width,
+        height: back.height,
+        fontSize: back.fontSize,
+        color: COLORS.locked,
+        hoverColor: COLORS.primaryHover,
+      })
+    );
+
+    addSettingsObject(
+      this.add
+        .text(cx, 648, 'Onet Classic v0.1.0', {
+          fontFamily: FONT_FAMILY,
+          fontSize: '15px',
+          color: '#8899bb',
+        })
+        .setOrigin(0.5)
+    );
   }
 
   syncSettingsAudio(buttons) {
@@ -283,11 +317,12 @@ export default class MenuScene extends Phaser.Scene {
   syncSettingsThemes() {
     const selectedTheme = getSelectedMapTheme();
     for (const theme of MAP_THEMES) {
-      const button = this.settingsThemeButtons.get(theme.id);
+      const card = this.settingsThemeButtons.get(theme.id);
       const active = theme.id === selectedTheme.id;
-      button.label.setText(`${theme.preview} ${theme.label}${active ? '  ✓ AKTIF' : ''}`);
-      button.bg.setStrokeStyle(4, active ? COLORS.accent : COLORS.stroke);
-      button.bg.setFillStyle(active ? COLORS.success : COLORS.primary);
+      card.label.setText(theme.label);
+      card.badge.setVisible(active);
+      card.bg.setStrokeStyle(4, active ? COLORS.accent : COLORS.stroke);
+      card.bg.setFillStyle(active ? COLORS.success : COLORS.primary);
     }
   }
 
