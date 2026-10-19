@@ -12,6 +12,8 @@ import {
   PAUSE_LAYOUT,
   PAUSE_PANEL,
   SETTINGS_LAYOUT,
+  SETTINGS_PANEL,
+  SETTINGS_SECTIONS,
   hitPadding,
   hitRect,
   rectsOverlap,
@@ -82,6 +84,30 @@ assert.ok(MENU_LAYOUT.settings.y > MENU_LAYOUT.play.y && MENU_LAYOUT.settings.y 
 const settingsThemes = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
 assert.ok(settingsThemes.every((spec) => spec.y === settingsThemes[0].y), 'pilihan tema harus berada pada satu baris');
 assert.ok(SETTINGS_LAYOUT.back.y > SETTINGS_LAYOUT.themeFaces.y, 'tombol kembali harus berada di bawah pilihan tema');
+const settingsDifficulty = [SETTINGS_LAYOUT.difficultyEasy, SETTINGS_LAYOUT.difficultyNormal, SETTINGS_LAYOUT.difficultyHard];
+assert.ok(settingsDifficulty.every((spec) => spec.y === settingsDifficulty[0].y), 'pilihan kesulitan harus berada pada satu baris');
+assert.ok(
+  settingsDifficulty[0].x < settingsDifficulty[1].x && settingsDifficulty[1].x < settingsDifficulty[2].x,
+  'urutan kartu kesulitan: easy, normal, hard dari kiri ke kanan'
+);
+assert.ok(
+  SETTINGS_LAYOUT.bgm.y < settingsDifficulty[0].y && settingsDifficulty[0].y < SETTINGS_LAYOUT.themeFaces.y,
+  'urutan panel: audio, kesulitan, lalu tema'
+);
+
+// Seluruh isi panel pengaturan (termasuk judul seksi & versi) berada di dalam panel.
+const settingsPanel = {
+  top: SETTINGS_PANEL.y - SETTINGS_PANEL.height / 2,
+  bottom: SETTINGS_PANEL.y + SETTINGS_PANEL.height / 2,
+};
+for (const [key, spec] of Object.entries(SETTINGS_LAYOUT)) {
+  if (key === 'close') continue; // tombol X sengaja menempel di pojok kanan atas panel
+  const r = hitRect(spec);
+  assert.ok(r.top >= settingsPanel.top && r.bottom <= settingsPanel.bottom, `Settings.${key} keluar panel`);
+}
+const sectionYs = Object.values(SETTINGS_SECTIONS);
+assert.ok(sectionYs.every((y, i) => i === 0 || y > sectionYs[i - 1]), 'seksi pengaturan harus berurutan dari atas ke bawah');
+assert.ok(sectionYs.every((y) => y > settingsPanel.top && y < settingsPanel.bottom), 'seksi pengaturan harus di dalam panel');
 assert.ok(SETTINGS_LAYOUT.close.x > GAME_WIDTH / 2, 'tombol tutup harus berada di pojok kanan modal');
 assert.ok(SETTINGS_LAYOUT.bgm.y === SETTINGS_LAYOUT.sfx.y, 'kontrol audio harus sejajar');
 

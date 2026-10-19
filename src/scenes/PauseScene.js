@@ -5,6 +5,7 @@ import { createButton } from '../utils/createButton.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
 import { PAUSE_LAYOUT, PAUSE_PANEL } from '../utils/uiLayout.js';
+import { getDifficulty } from '../utils/difficulty.js';
 
 /**
  * Modal pause. Dijalankan di atas GameScene (scene.launch) sementara GameScene
@@ -18,6 +19,7 @@ export default class PauseScene extends Phaser.Scene {
 
   init(data) {
     this.level = data?.level ?? 1;
+    this.difficulty = getDifficulty(data?.difficulty);
   }
 
   create() {
@@ -45,7 +47,7 @@ export default class PauseScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(cx, cy - 154, `Level ${this.level}`, {
+      .text(cx, cy - 154, `Level ${this.level}  •  ${this.difficulty.label}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '24px',
         color: '#7aa9ff',

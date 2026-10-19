@@ -8,8 +8,14 @@ import { isMuted, toggleMuted } from '../utils/audioSettings.js';
 import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
-import { MENU_LAYOUT, SETTINGS_LAYOUT, SETTINGS_PANEL } from '../utils/uiLayout.js';
+import { MENU_LAYOUT, SETTINGS_LAYOUT, SETTINGS_PANEL, SETTINGS_SECTIONS } from '../utils/uiLayout.js';
 import { getSelectedMapTheme, MAP_THEMES, setSelectedMapTheme } from '../utils/mapThemes.js';
+import {
+  describeDifficulty,
+  DIFFICULTIES,
+  getSelectedDifficulty,
+  setSelectedDifficulty,
+} from '../utils/difficulty.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -21,6 +27,8 @@ export default class MenuScene extends Phaser.Scene {
     const cleanup = setupSceneCleanup(this, () => {
       this.settingsObjects = null;
       this.settingsThemeButtons = null;
+      this.settingsDifficultyButtons = null;
+      this.highScoreText = null;
       this.decorativeTiles = null;
     });
 
@@ -96,8 +104,8 @@ export default class MenuScene extends Phaser.Scene {
     });
 
     // Rekor & progres
-    this.add
-      .text(cx, 645, `High Score: ${getHighScore()}`, {
+    this.highScoreText = this.add
+      .text(cx, 645, '', {
         fontFamily: FONT_FAMILY,
         fontSize: '28px',
         fontStyle: 'bold',
@@ -106,6 +114,7 @@ export default class MenuScene extends Phaser.Scene {
         strokeThickness: 6,
       })
       .setOrigin(0.5);
+    this.refreshHighScore();
     this.add
       .text(cx, 673, `Level terbuka: ${getUnlockedLevel()} / ${MAX_LEVEL}`, {
         fontFamily: FONT_FAMILY,
@@ -182,7 +191,7 @@ export default class MenuScene extends Phaser.Scene {
     };
 
     // Bagian 1: audio
-    addSectionHeading(152, 'AUDIO');
+    addSectionHeading(SETTINGS_SECTIONS.audioHeading, 'AUDIO');
     const audioButtons = {};
     const addAudioToggle = (channel, layout, label) => {
       const button = createButton(
@@ -210,10 +219,71 @@ export default class MenuScene extends Phaser.Scene {
     addAudioToggle('sfx', SETTINGS_LAYOUT.sfx, 'EFEK SUARA');
     this.syncSettingsAudio(audioButtons);
 
-    addDivider(272);
+    addDivider(SETTINGS_SECTIONS.audioDivider);
 
-    // Bagian 2: tema map (tiga kartu dengan contoh tile)
-    addSectionHeading(308, 'PILIH TEMA MAP');
+    // Bagian 2: tingkat kesulitan (tiga kartu: label + ringkasan aturan)
+    addSectionHeading(SETTINGS_SECTIONS.difficultyHeading, 'TINGKAT KESULITAN');
+    const difficultyLayouts = {
+      easy: SETTINGS_LAYOUT.difficultyEasy,
+      normal: SETTINGS_LAYOUT.difficultyNormal,
+      hard: SETTINGS_LAYOUT.difficultyHard,
+    };
+    this.settingsDifficultyButtons = new Map();
+    DIFFICULTIES.forEach((difficulty) => {
+      const layout = difficultyLayouts[difficulty.id];
+      const card = createButton(
+        this,
+        layout.x,
+        layout.y,
+        difficulty.label,
+        () => {
+          if (getSelectedDifficulty().id === difficulty.id) return;
+          setSelectedDifficulty(difficulty.id);
+          this.syncSettingsDifficulty();
+          this.refreshHighScore();
+        },
+        {
+          width: layout.width,
+          height: layout.height,
+          fontSize: layout.fontSize,
+          color: COLORS.primary,
+          hoverColor: COLORS.primaryHover,
+        }
+      );
+
+      // Label di atas, ringkasan aturan (waktu & jatah acak) di bawahnya.
+      card.label.setY(-17);
+      card.add(
+        this.add
+          .text(0, 17, describeDifficulty(difficulty), {
+            fontFamily: FONT_FAMILY,
+            fontSize: '16px',
+            color: '#dbe6ff',
+          })
+          .setOrigin(0.5)
+      );
+
+      // Lencana centang di pojok kanan atas kartu aktif.
+      const badge = this.add.container(layout.width / 2 - 6, -layout.height / 2 + 6, [
+        this.add.circle(0, 0, 14, COLORS.accent).setStrokeStyle(3, COLORS.stroke),
+        this.add
+          .text(0, 0, '✓', { fontFamily: FONT_FAMILY, fontSize: '18px', fontStyle: 'bold', color: '#16213e' })
+          .setOrigin(0.5),
+      ]);
+      card.add(badge);
+      card.badge = badge;
+      // createButton mengembalikan warna dasar saat pointer keluar; sinkronkan agar kartu aktif tetap hijau.
+      card.bg.on('pointerout', () => this.settingsDifficultyButtons && this.syncSettingsDifficulty());
+
+      this.settingsDifficultyButtons.set(difficulty.id, card);
+      addSettingsObject(card);
+    });
+    this.syncSettingsDifficulty();
+
+    addDivider(SETTINGS_SECTIONS.difficultyDivider);
+
+    // Bagian 3: tema map (tiga kartu dengan contoh tile)
+    addSectionHeading(SETTINGS_SECTIONS.themeHeading, 'PILIH TEMA MAP');
     const themeLayouts = {
       faces: SETTINGS_LAYOUT.themeFaces,
       countries: SETTINGS_LAYOUT.themeCountries,
@@ -246,9 +316,9 @@ export default class MenuScene extends Phaser.Scene {
       );
 
       // Contoh tile di bagian atas kartu, label di bawahnya.
-      card.label.setY(layout.height / 2 - 30);
+      card.label.setY(layout.height / 2 - 24);
       previewFrames.forEach((frame, index) => {
-        const sample = this.add.image((index - 1) * 74, -20, theme.textureKey, frame).setScale(0.62);
+        const sample = this.add.image((index - 1) * 74, -18, theme.textureKey, frame).setScale(0.56);
         card.add(sample);
       });
 
@@ -269,7 +339,7 @@ export default class MenuScene extends Phaser.Scene {
     });
     this.syncSettingsThemes();
 
-    addDivider(495);
+    addDivider(SETTINGS_SECTIONS.themeDivider);
 
     // Tombol tutup, kembali, dan versi
     const close = SETTINGS_LAYOUT.close;
@@ -296,7 +366,7 @@ export default class MenuScene extends Phaser.Scene {
 
     addSettingsObject(
       this.add
-        .text(cx, 648, 'Onet Classic v0.1.0', {
+        .text(cx, SETTINGS_SECTIONS.version, 'Onet Classic v0.1.0', {
           fontFamily: FONT_FAMILY,
           fontSize: '15px',
           color: '#8899bb',
@@ -326,14 +396,38 @@ export default class MenuScene extends Phaser.Scene {
     }
   }
 
+  syncSettingsDifficulty() {
+    const selected = getSelectedDifficulty();
+    for (const difficulty of DIFFICULTIES) {
+      const card = this.settingsDifficultyButtons.get(difficulty.id);
+      const active = difficulty.id === selected.id;
+      card.badge.setVisible(active);
+      card.bg.setStrokeStyle(4, active ? COLORS.accent : COLORS.stroke);
+      card.bg.setFillStyle(active ? COLORS.success : COLORS.primary);
+    }
+  }
+
+  /** Rekor ditampilkan per tingkat kesulitan yang sedang dipilih. */
+  refreshHighScore() {
+    if (!this.highScoreText) return;
+    const difficulty = getSelectedDifficulty();
+    this.highScoreText.setText(`High Score (${difficulty.label}): ${getHighScore(difficulty.id)}`);
+  }
+
   closeSettings() {
     this.settingsObjects?.forEach((object) => object.destroy());
     this.settingsObjects = null;
     this.settingsThemeButtons = null;
+    this.settingsDifficultyButtons = null;
   }
 
   startGame() {
-    fadeToScene(this, SCENES.GAME, { level: 1, score: 0, mapTheme: getSelectedMapTheme().id }, 250);
+    fadeToScene(
+      this,
+      SCENES.GAME,
+      { level: 1, score: 0, mapTheme: getSelectedMapTheme().id, difficulty: getSelectedDifficulty().id },
+      250
+    );
   }
 
   openLevelSelect() {

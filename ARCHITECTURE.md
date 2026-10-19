@@ -77,7 +77,8 @@ onet-classic/
 | -------------------- | --------------------------------------------------------------------- | :-----------: |
 | `pathfinding.js`     | `findPath`, `findValidPair` (BFS maks. 2 belokan)                     | Ya |
 | `boardGenerator.js`  | `generateBoard`, `shuffleRemaining`, `applyShift`, `countTiles`        | Ya |
-| `highScore.js`       | Baca/simpan rekor skor ke `localStorage`                              | Ya |
+| `highScore.js`       | Baca/simpan rekor skor ke `localStorage` (terpisah per kesulitan)     | Ya |
+| `difficulty.js`      | Tingkat kesulitan Easy/Normal/Hard: aturan, pilihan tersimpan         | Ya |
 | `levelProgress.js`   | Progres level terbuka + cadangan memori                               | Ya |
 | `levelGrid.js`       | Hitung posisi kartu di layar Level Select                             | Ya |
 | `boardLayout.js`     | Hitung ukuran tile & posisi papan agar muat di layar                  | Ya |
@@ -357,14 +358,15 @@ Seluruh persistensi memakai `localStorage` melalui helper terisolasi. Setiap aks
 
 | Data                 | Key `localStorage`     | Modul              | Perilaku                                                                                   |
 | -------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------------------------ |
-| Skor tertinggi       | `onet_high_score`      | `highScore.js`     | Hanya ditulis bila skor baru **>** rekor lama; data tidak valid dibaca sebagai `0`         |
+| Skor tertinggi       | `onet_high_score` (Normal), `onet_high_score_easy`, `onet_high_score_hard` | `highScore.js`     | Hanya ditulis bila skor baru **>** rekor lama; data tidak valid dibaca sebagai `0`         |
+| Tingkat kesulitan    | `onet_difficulty`      | `difficulty.js`    | Nilai tidak dikenal diabaikan (jatuh ke cadangan memori / `normal`)                        |
 | Level terbuka        | `onet_unlocked_level`  | `levelProgress.js` | Hanya naik (tidak pernah turun), dibatasi `MAX_LEVEL`; data tidak valid dibaca sebagai `1` |
 | Status mute BGM/SFX  | *(tidak disimpan)*     | `audioSettings.js` | Disimpan di `game.registry` (memori); hilang saat halaman dimuat ulang                      |
 
 ### 9.1 High Score
 
-- `getHighScore()` → bilangan bulat ≥ 0; `0` bila belum ada, rusak, atau storage tidak tersedia.
-- `saveHighScore(score)` → `{ highScore, previous, isNew }`. Skor dinormalisasi dengan `Math.floor(Number(score) || 0)`. Bila gagal menulis, hasil tetap dianggap rekor untuk sesi berjalan, tetapi tidak persisten.
+- `getHighScore(difficultyId = 'normal')` → bilangan bulat ≥ 0; `0` bila belum ada, rusak, atau storage tidak tersedia. Rekor dipisah per tingkat kesulitan; Normal memakai key lama agar rekor yang sudah ada tetap terbaca.
+- `saveHighScore(score, difficultyId = 'normal')` → `{ highScore, previous, isNew }`. Skor dinormalisasi dengan `Math.floor(Number(score) || 0)`. Bila gagal menulis, hasil tetap dianggap rekor untuk sesi berjalan, tetapi tidak persisten.
 - Dipanggil di `GameOverScene.create()` untuk hasil kalah **dan** menang. Dibaca di `MenuScene` dan `GameOverScene`.
 
 ### 9.2 Progres Level
@@ -415,6 +417,7 @@ Pengujian berupa skrip Node murni (`node:assert/strict`) untuk logika tanpa Phas
 | `tests/levelgrid.test.mjs`   | Layout kartu Level Select (muat di area, tanpa tumpang tindih) |
 | `tests/layout.test.mjs`      | Area sentuh tombol UI: tidak tumpang tindih, di dalam layar, tidak menutupi papan |
 | `tests/cleanup.test.mjs`     | Listener bag & `setupSceneCleanup` (tidak ada listener menumpuk setelah banyak siklus) |
+| `tests/difficulty.test.mjs`  | Aturan Easy/Normal/Hard (Normal = perilaku asli), batas waktu, skor, dan penyimpanan pilihan |
 
 Logika yang menyentuh Phaser (tampilan, tween, input) saat ini diverifikasi secara manual di browser.
 

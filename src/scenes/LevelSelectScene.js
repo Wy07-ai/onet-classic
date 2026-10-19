@@ -18,6 +18,7 @@ import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
 import { LEVEL_SELECT_LAYOUT } from '../utils/uiLayout.js';
 import { getSelectedMapTheme } from '../utils/mapThemes.js';
+import { getScaledTimeLimit, getSelectedDifficulty } from '../utils/difficulty.js';
 
 const GRID_AREA = { left: 40, right: GAME_WIDTH - 40, top: 190, bottom: 610, maxCols: 5, gap: 28 };
 
@@ -40,6 +41,7 @@ export default class LevelSelectScene extends Phaser.Scene {
     addThemedBackground(this, { alpha: 0.12 });
 
     const unlocked = getUnlockedLevel();
+    this.difficulty = getSelectedDifficulty();
 
     this.add
       .text(cx, 84, 'SELECT LEVEL', {
@@ -59,6 +61,15 @@ export default class LevelSelectScene extends Phaser.Scene {
         fontFamily: FONT_FAMILY,
         fontSize: '22px',
         color: '#b8c4e8',
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(cx, 168, `Kesulitan: ${this.difficulty.label}  (ubah di Pengaturan)`, {
+        fontFamily: FONT_FAMILY,
+        fontSize: '18px',
+        fontStyle: 'bold',
+        color: '#ffd166',
       })
       .setOrigin(0.5);
 
@@ -138,7 +149,10 @@ export default class LevelSelectScene extends Phaser.Scene {
           .setOrigin(0.5)
       );
     } else {
-      const lines = [`${config.rows} × ${config.cols}`, `${config.timeLimit} detik`];
+      const lines = [
+        `${config.rows} × ${config.cols}`,
+        `${getScaledTimeLimit(config.timeLimit, this.difficulty)} detik`,
+      ];
       lines.forEach((line, i) => {
         items.push(
           this.add
@@ -263,7 +277,12 @@ export default class LevelSelectScene extends Phaser.Scene {
   }
 
   startLevel(level) {
-    fadeToScene(this, SCENES.GAME, { level, score: 0, mapTheme: getSelectedMapTheme().id }, 250);
+    fadeToScene(
+      this,
+      SCENES.GAME,
+      { level, score: 0, mapTheme: getSelectedMapTheme().id, difficulty: this.difficulty.id },
+      250
+    );
   }
 
   goBack() {
