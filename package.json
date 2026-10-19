@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/logic.test.mjs && node tests/levels.test.mjs && node tests/shift.test.mjs && node tests/highscore.test.mjs && node tests/levelprogress.test.mjs && node tests/levelgrid.test.mjs && node tests/layout.test.mjs && node tests/cleanup.test.mjs && node tests/mapthemes.test.mjs",
+    "test": "node tests/logic.test.mjs && node tests/levels.test.mjs && node tests/shift.test.mjs && node tests/highscore.test.mjs && node tests/levelprogress.test.mjs && node tests/levelgrid.test.mjs && node tests/layout.test.mjs && node tests/cleanup.test.mjs && node tests/mapthemes.test.mjs && node tests/difficulty.test.mjs",
     "test:coverage": "c8 --reporter=text --reporter=lcov --reporter=html npm test",
     "test:e2e": "npx playwright test --reporter=list,html",
     "lint": "eslint src tests scripts --ext .js,.mjs,.cjs",

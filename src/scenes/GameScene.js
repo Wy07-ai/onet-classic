@@ -4,7 +4,6 @@ import {
   FONT_FAMILY,
   GAME_HEIGHT,
   GAME_WIDTH,
-  GAMEPLAY,
   MAX_LEVEL,
   SCENES,
   SHIFT_LABELS,
@@ -22,6 +21,13 @@ import { findPath, findValidPair } from '../utils/pathfinding.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { HUD_LAYOUT, LEVEL_COMPLETE_LAYOUT } from '../utils/uiLayout.js';
 import { getMapTheme, getSelectedMapTheme, MAP_THEMES } from '../utils/mapThemes.js';
+import {
+  DIFFICULTIES,
+  getDifficulty,
+  getPairScore,
+  getScaledTimeLimit,
+  getSelectedDifficulty,
+} from '../utils/difficulty.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -29,8 +35,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
-   * @param {{level?: number, score?: number, mapTheme?: string}} [data] level,
-   *   skor, dan tema map. Tanpa data = mulai dari Level 1.
+   * @param {{level?: number, score?: number, mapTheme?: string, difficulty?: string}} [data] level,
+   *   skor, tema map, dan tingkat kesulitan. Tanpa data = mulai dari Level 1.
    */
   create(data = {}) {
     const cx = GAME_WIDTH / 2;
@@ -44,10 +50,15 @@ export default class GameScene extends Phaser.Scene {
       ? data.mapTheme
       : getSelectedMapTheme().id;
     this.mapTheme = getMapTheme(themeId);
+    const difficultyId = DIFFICULTIES.some((difficulty) => difficulty.id === data.difficulty)
+      ? data.difficulty
+      : getSelectedDifficulty().id;
+    this.difficulty = getDifficulty(difficultyId);
+    this.pairScore = getPairScore(this.difficulty);
     const config = getLevelConfig(this.level);
     this.rows = config.rows;
     this.cols = config.cols;
-    this.timeLimit = config.timeLimit;
+    this.timeLimit = getScaledTimeLimit(config.timeLimit, this.difficulty);
     this.shiftMode = config.shift ?? SHIFT_MODES.NONE;
     this.layout = computeBoardLayout(this.rows, this.cols);
     this.tileSize = this.layout.tileSize;
@@ -62,7 +73,7 @@ export default class GameScene extends Phaser.Scene {
     this.score = data.score ?? 0;
     this.levelStartScore = this.score;
     this.timeLeft = this.timeLimit;
-    this.shufflesLeft = GAMEPLAY.shuffles;
+    this.shufflesLeft = this.difficulty.shuffles;
     this.selectedTile = null;
     this.tiles = new Map();
     this.grid = generateBoard(this.rows, this.cols, config.tileTypes);
@@ -116,7 +127,7 @@ export default class GameScene extends Phaser.Scene {
 
   pauseGame() {
     if (this.transitioning || this.levelCompleteShown || this.scene.isPaused()) return;
-    this.scene.launch(SCENES.PAUSE, { level: this.level });
+    this.scene.launch(SCENES.PAUSE, { level: this.level, difficulty: this.difficulty.id });
     // GameScene dibekukan: update (timer), tween, dan input berhenti.
     this.scene.pause();
   }
@@ -153,7 +164,7 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => banner.destroy(),
     });
 
-    const label = SHIFT_LABELS[this.shiftMode];
+    const label = [this.difficulty.label, SHIFT_LABELS[this.shiftMode]].filter(Boolean).join('  •  ');
     if (label) {
       const sub = this.add
         .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 62, label, {
@@ -186,7 +197,7 @@ export default class GameScene extends Phaser.Scene {
     this.keepMusic = true; // BGM lanjut terus antar level
     this.cameras.main.fadeOut(220);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.restart({ level, score, mapTheme: this.mapTheme.id });
+      this.scene.restart({ level, score, mapTheme: this.mapTheme.id, difficulty: this.difficulty.id });
     });
   }
 
@@ -226,7 +237,7 @@ export default class GameScene extends Phaser.Scene {
     );
     items.push(
       this.add
-        .text(cx, cy + 5, `Berikutnya: ${next.rows}x${next.cols}  •  ${next.timeLimit} detik${SHIFT_LABELS[next.shift] ? `\n${SHIFT_LABELS[next.shift]}` : ''}`, {
+        .text(cx, cy + 5, `Berikutnya: ${next.rows}x${next.cols}  •  ${getScaledTimeLimit(next.timeLimit, this.difficulty)} detik${SHIFT_LABELS[next.shift] ? `\n${SHIFT_LABELS[next.shift]}` : ''}`, {
           fontFamily: FONT_FAMILY,
           fontSize: '22px',
           color: '#b8c4e8',
@@ -344,11 +355,11 @@ export default class GameScene extends Phaser.Scene {
       this.tiles.delete(this.key(first.r, first.c));
       this.tiles.delete(this.key(second.r, second.c));
       first.vanish();
-      this.score += GAMEPLAY.pairScore;
-      this.timeLeft = Math.min(this.timeLimit, this.timeLeft + GAMEPLAY.timeBonus);
+      this.score += this.pairScore;
+      this.timeLeft = Math.min(this.timeLimit, this.timeLeft + this.difficulty.timeBonus);
       this.hud.setScore(this.score);
       this.hud.setTime(this.timeLeft, this.timeLimit);
-      this.hud.floatText((first.x + second.x) / 2, (first.y + second.y) / 2, `+${GAMEPLAY.pairScore}`);
+      this.hud.floatText((first.x + second.x) / 2, (first.y + second.y) / 2, `+${this.pairScore}`);
       second.vanish(() => {
         // Tile tersisa bergeser mengisi ruang kosong (sesuai aturan level), baru input dibuka lagi.
         this.shiftTiles(() => {
@@ -516,6 +527,12 @@ export default class GameScene extends Phaser.Scene {
   finishGame(win) {
     if (this.isResolving && !win) return;
     this.isResolving = true;
-    this.scene.start(SCENES.GAME_OVER, { win, score: this.score, timeLeft: this.timeLeft, level: this.level });
+    this.scene.start(SCENES.GAME_OVER, {
+      win,
+      score: this.score,
+      timeLeft: this.timeLeft,
+      level: this.level,
+      difficulty: this.difficulty.id,
+    });
   }
-}
+}

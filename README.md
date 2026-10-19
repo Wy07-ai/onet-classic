@@ -84,8 +84,8 @@ Pastikan Chromium Playwright tersedia terlebih dahulu dengan `npx playwright ins
 ## Fase 3 — Gameplay & UI
 
 - **Timer bar** di atas papan; waktu habis -> `GameOverScene` (kalah) membawa `{ win, score, timeLeft, level }`.
-- **Skor**: +100 per pasangan, +3 detik bonus waktu (maks. tidak melebihi batas waktu level).
-- **Shuffle** (3x per game) & **Petunjuk** (hint: pasangan valid berkedip, tanpa batas).
+- **Skor**: +100 per pasangan, +3 detik bonus waktu (maks. tidak melebihi batas waktu level). Angka ini untuk tingkat **Normal**; lihat [Tingkat Kesulitan](#tingkat-kesulitan).
+- **Shuffle** (3x per game pada Normal) & **Petunjuk** (hint: pasangan valid berkedip, tanpa batas).
 - **Menang**: papan bersih -> `GameOverScene` dengan pesan menang + skor akhir.
 - **Auto-check**: bila tidak ada pasangan valid, papan diacak otomatis (tidak memakai jatah Shuffle).
 
@@ -149,6 +149,21 @@ Nama mode tampil sebagai subjudul saat banner level muncul. Bila setelah bergese
 - Latar bertema (`src/utils/background.js`) dipakai di Menu, Level Select, dan Game Over.
 - Semua tombol (`createButton`, tombol HUD) punya efek hover/press: scale tween + tint warna; klik batal bila pointer dilepas di luar tombol.
 - `GameOverScene`: panel berisi skor akhir (count-up), indikator rekor, statistik (level, pasangan, sisa waktu), tombol **PLAY AGAIN** / **MAIN MENU**.
+
+## Tingkat Kesulitan
+
+Pilih di **Menu → Pengaturan → Tingkat Kesulitan** sebelum bermain (`src/utils/difficulty.js`). Pilihan berlaku untuk semua level dalam satu permainan, termasuk saat memilih level lewat Select Level atau memakai PLAY AGAIN.
+
+| Kesulitan | Batas waktu level | Shuffle / level | Bonus waktu / pasangan | Skor / pasangan |
+|-----------|-------------------|-----------------|------------------------|-----------------|
+| Easy      | ×1,5              | 5               | +5 detik               | 100             |
+| Normal    | ×1 (standar)      | 3               | +3 detik               | 100             |
+| Hard      | ×0,75             | 1               | +2 detik               | 150             |
+
+- Batas waktu hasil pengali dibulatkan ke kelipatan 5 detik (mis. Level 1: Easy 180 s, Normal 120 s, Hard 90 s).
+- **Normal** sama persis dengan perilaku asli game.
+- Rekor (High Score) dihitung **terpisah per kesulitan**; rekor Normal memakai key lama sehingga rekor yang sudah ada tetap terbaca. Progres level terbuka dibagi untuk semua kesulitan.
+- Menambah/mengubah kesulitan cukup dengan mengedit `DIFFICULTIES` di `src/utils/difficulty.js` (dan menambah kartu di `SETTINGS_LAYOUT` bila jumlahnya berubah).
 
 ## Tema Map
 

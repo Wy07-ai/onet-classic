@@ -8,7 +8,23 @@ Jenis perubahan: `Added` (fitur baru), `Changed` (perubahan perilaku), `Deprecat
 
 ## [Unreleased]
 
-Belum ada perubahan. Ide fitur mendatang dicatat di [ROADMAP.md](ROADMAP.md).
+### Added
+
+- **Tingkat kesulitan Easy / Normal / Hard**, dipilih di Menu → Pengaturan dan berlaku untuk seluruh level dalam satu permainan (`src/utils/difficulty.js`):
+  - **Easy**: waktu ×1,5, 5× Shuffle per level, bonus +5 detik per pasangan.
+  - **Normal**: sama persis dengan perilaku sebelumnya (waktu standar, 3× Shuffle, bonus +3 detik).
+  - **Hard**: waktu ×0,75, 1× Shuffle per level, bonus +2 detik per pasangan, skor ×1,5 per pasangan.
+- Batas waktu hasil penyesuaian dibulatkan ke kelipatan 5 detik dan ditampilkan di Level Select serta modal level selesai.
+- Nama kesulitan tampil di banner level, layar Pause, Level Select, Menu, dan layar akhir.
+- **Rekor dipisah per tingkat kesulitan** (`onet_high_score_easy`, `onet_high_score_hard`). Rekor Normal tetap memakai key lama `onet_high_score`, jadi rekor yang sudah tersimpan tidak hilang.
+- Pilihan kesulitan tersimpan di `localStorage` (`onet_difficulty`) dan tetap bekerja lewat cadangan memori bila storage diblokir.
+- Pengujian baru `tests/difficulty.test.mjs`; `highscore.test.mjs` dan `layout.test.mjs` diperluas.
+
+### Changed
+
+- Panel Pengaturan ditata ulang menjadi tiga seksi (Audio, Tingkat Kesulitan, Tema Map).
+
+Ide fitur mendatang dicatat di [ROADMAP.md](ROADMAP.md).
 
 ---
 

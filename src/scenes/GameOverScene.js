@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAMEPLAY, GAME_HEIGHT, GAME_WIDTH, FONT_FAMILY, MAX_LEVEL, SCENES } from '../constants.js';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, FONT_FAMILY, MAX_LEVEL, SCENES } from '../constants.js';
 import { createButton } from '../utils/createButton.js';
 import { saveHighScore } from '../utils/highScore.js';
 import { addThemedBackground } from '../utils/background.js';
@@ -7,6 +7,7 @@ import { fadeToScene } from '../utils/transitions.js';
 import { setupSceneCleanup } from '../utils/sceneCleanup.js';
 import { isTouchDevice } from '../utils/device.js';
 import { GAME_OVER_LAYOUT } from '../utils/uiLayout.js';
+import { getDifficulty, getPairScore } from '../utils/difficulty.js';
 
 const PANEL = { y: 365, width: 720, height: 570 };
 
@@ -20,7 +21,8 @@ export default class GameOverScene extends Phaser.Scene {
     super(SCENES.GAME_OVER);
   }
 
-  create({ win = false, score = 0, level = 1, timeLeft = 0 } = {}) {
+  create({ win = false, score = 0, level = 1, timeLeft = 0, difficulty: difficultyId } = {}) {
+    this.difficulty = getDifficulty(difficultyId);
     const cx = GAME_WIDTH / 2;
     const accent = win ? COLORS.success : COLORS.danger;
     const cleanup = setupSceneCleanup(this);
@@ -29,7 +31,8 @@ export default class GameOverScene extends Phaser.Scene {
     addThemedBackground(this, { alpha: 0.1 });
 
     // Game Over maupun Win: simpan skor bila memecahkan rekor lama.
-    const { highScore, previous, isNew } = saveHighScore(score);
+    // Rekor dipisah per tingkat kesulitan.
+    const { highScore, previous, isNew } = saveHighScore(score, this.difficulty.id);
 
     // --- Panel ---
     this.add.rectangle(cx, PANEL.y + 8, PANEL.width, PANEL.height, 0x000000, 0.35); // bayangan
@@ -51,7 +54,9 @@ export default class GameOverScene extends Phaser.Scene {
     this.tweens.add({ targets: title, scale: 1, alpha: 1, duration: 420, ease: 'Back.easeOut' });
 
     this.add
-      .text(cx, 218, win ? 'Semua level berhasil diselesaikan!' : `Waktu habis di Level ${level}`, {
+      .text(cx, 218, win
+        ? `Semua level berhasil diselesaikan! (${this.difficulty.label})`
+        : `Waktu habis di Level ${level}  •  ${this.difficulty.label}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '24px',
         color: '#b8c4e8',
@@ -122,7 +127,7 @@ export default class GameOverScene extends Phaser.Scene {
     // --- Statistik permainan ---
     const stats = [
       ['LEVEL', `${win ? MAX_LEVEL : level} / ${MAX_LEVEL}`],
-      ['PASANGAN', String(Math.floor(score / GAMEPLAY.pairScore))],
+      ['PASANGAN', String(Math.floor(score / getPairScore(this.difficulty)))],
       ['SISA WAKTU', formatTime(win ? timeLeft : 0)],
     ];
     stats.forEach(([label, value], i) => this.createStatBox(cx + (i - 1) * 218, 486, 200, 76, label, value));
@@ -171,7 +176,7 @@ export default class GameOverScene extends Phaser.Scene {
 
   playAgain() {
     // Data eksplisit: tanpa ini Phaser memakai ulang data start sebelumnya (level terakhir)
-    fadeToScene(this, SCENES.GAME, { level: 1, score: 0 }, 250);
+    fadeToScene(this, SCENES.GAME, { level: 1, score: 0, difficulty: this.difficulty.id }, 250);
   }
 
   goToMenu() {
