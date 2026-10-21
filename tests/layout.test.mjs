@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { BOARD_AREA, GAME_HEIGHT, GAME_WIDTH, LEVELS, TOUCH } from '../src/constants.js';
 import { computeBoardLayout } from '../src/utils/boardLayout.js';
+import { MAP_THEMES } from '../src/utils/mapThemes.js';
 import {
   GAME_OVER_LAYOUT,
   HUD_LAYOUT,
@@ -81,8 +82,25 @@ assert.ok(BOARD_AREA.bottom <= HUD_LAYOUT.shuffle.y - HUD_LAYOUT.shuffle.height 
 
 // Pengaturan tersedia di menu utama; pilihan tema berada di panel pengaturan.
 assert.ok(MENU_LAYOUT.settings.y > MENU_LAYOUT.play.y && MENU_LAYOUT.settings.y > MENU_LAYOUT.levelSelect.y);
-const settingsThemes = [SETTINGS_LAYOUT.themeFaces, SETTINGS_LAYOUT.themeCountries, SETTINGS_LAYOUT.themeFood];
+const settingsThemes = [
+  SETTINGS_LAYOUT.themeFaces,
+  SETTINGS_LAYOUT.themeCountries,
+  SETTINGS_LAYOUT.themeFood,
+  SETTINGS_LAYOUT.themeAnimals,
+  SETTINGS_LAYOUT.themeClocks,
+];
+assert.equal(settingsThemes.length, MAP_THEMES.length, 'setiap tema map harus punya kartu di panel pengaturan');
 assert.ok(settingsThemes.every((spec) => spec.y === settingsThemes[0].y), 'pilihan tema harus berada pada satu baris');
+for (let i = 1; i < settingsThemes.length; i += 1) {
+  assert.ok(settingsThemes[i - 1].x < settingsThemes[i].x, 'urutan kartu tema mengikuti MAP_THEMES dari kiri ke kanan');
+  assert.ok(!rectsOverlap(hitRect(settingsThemes[i - 1]), hitRect(settingsThemes[i])), `kartu tema ${i} dan ${i + 1} tumpang-tindih`);
+}
+const themeRowLeft = hitRect(settingsThemes[0]).left;
+const themeRowRight = hitRect(settingsThemes[settingsThemes.length - 1]).right;
+assert.ok(
+  themeRowLeft >= SETTINGS_PANEL.x - SETTINGS_PANEL.width / 2 && themeRowRight <= SETTINGS_PANEL.x + SETTINGS_PANEL.width / 2,
+  'baris kartu tema harus berada di dalam panel pengaturan'
+);
 assert.ok(SETTINGS_LAYOUT.back.y > SETTINGS_LAYOUT.themeFaces.y, 'tombol kembali harus berada di bawah pilihan tema');
 const settingsDifficulty = [SETTINGS_LAYOUT.difficultyEasy, SETTINGS_LAYOUT.difficultyNormal, SETTINGS_LAYOUT.difficultyHard];
 assert.ok(settingsDifficulty.every((spec) => spec.y === settingsDifficulty[0].y), 'pilihan kesulitan harus berada pada satu baris');

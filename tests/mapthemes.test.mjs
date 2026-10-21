@@ -8,15 +8,19 @@ import {
   setSelectedMapTheme,
 } from '../src/utils/mapThemes.js';
 
-assert.equal(MAP_THEMES.length, 3);
+assert.equal(MAP_THEMES.length, 5);
 assert.deepEqual(
   MAP_THEMES.map(({ id, textureKey, frameCount }) => [id, textureKey, frameCount]),
   [
     ['faces', 'face-tiles', 24],
     ['countries', 'country-tiles', 24],
     ['food', 'food-tiles', 24],
+    ['animals', 'animal-tiles', 24],
+    ['clocks', 'clock-tiles', 24],
   ]
 );
+assert.equal(new Set(MAP_THEMES.map((theme) => theme.id)).size, MAP_THEMES.length, 'id tema harus unik');
+assert.equal(new Set(MAP_THEMES.map((theme) => theme.textureKey)).size, MAP_THEMES.length, 'textureKey tema harus unik');
 assert.equal(DEFAULT_MAP_THEME_ID, 'faces');
 assert.equal(getSelectedMapTheme().id, DEFAULT_MAP_THEME_ID);
 assert.equal(getMapTheme('missing').id, DEFAULT_MAP_THEME_ID);

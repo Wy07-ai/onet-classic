@@ -282,12 +282,14 @@ export default class MenuScene extends Phaser.Scene {
 
     addDivider(SETTINGS_SECTIONS.difficultyDivider);
 
-    // Bagian 3: tema map (tiga kartu dengan contoh tile)
+    // Bagian 3: tema map (lima kartu dengan contoh tile)
     addSectionHeading(SETTINGS_SECTIONS.themeHeading, 'PILIH TEMA MAP');
     const themeLayouts = {
       faces: SETTINGS_LAYOUT.themeFaces,
       countries: SETTINGS_LAYOUT.themeCountries,
       food: SETTINGS_LAYOUT.themeFood,
+      animals: SETTINGS_LAYOUT.themeAnimals,
+      clocks: SETTINGS_LAYOUT.themeClocks,
     };
     const previewFrames = [0, 4, 8];
     this.settingsThemeButtons = new Map();
@@ -316,9 +318,12 @@ export default class MenuScene extends Phaser.Scene {
       );
 
       // Contoh tile di bagian atas kartu, label di bawahnya.
+      // Label panjang (mis. "MAKANAN & MINUMAN") turun ke baris kedua agar tidak keluar dari kartu.
       card.label.setY(layout.height / 2 - 24);
+      card.label.setAlign('center');
+      card.label.setWordWrapWidth(layout.width - 16);
       previewFrames.forEach((frame, index) => {
-        const sample = this.add.image((index - 1) * 74, -18, theme.textureKey, frame).setScale(0.56);
+        const sample = this.add.image((index - 1) * 60, -18, theme.textureKey, frame).setScale(0.5);
         card.add(sample);
       });
 

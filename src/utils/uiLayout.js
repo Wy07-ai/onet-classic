@@ -33,14 +33,16 @@ export const SETTINGS_LAYOUT = {
   close: { x: 1110, y: 90, width: 64, height: 64, fontSize: 28 },
   bgm: { x: CX - 230, y: 196, width: 380, height: 60, fontSize: 22 },
   sfx: { x: CX + 230, y: 196, width: 380, height: 60, fontSize: 22 },
-  // Kartu kesulitan: tiga kartu sama lebar (label + ringkasan aturan), sejajar dengan kartu tema.
+  // Kartu kesulitan: tiga kartu sama lebar (label + ringkasan aturan), di tengah panel.
   difficultyEasy: { x: CX - 340, y: 322, width: 300, height: 84, fontSize: 26 },
   difficultyNormal: { x: CX, y: 322, width: 300, height: 84, fontSize: 26 },
   difficultyHard: { x: CX + 340, y: 322, width: 300, height: 84, fontSize: 26 },
-  // Kartu tema: tiga kartu sama lebar, jarak 40 antar kartu, berada di tengah panel.
-  themeFaces: { x: CX - 340, y: 486, width: 300, height: 110, fontSize: 22 },
-  themeCountries: { x: CX, y: 486, width: 300, height: 110, fontSize: 22 },
-  themeFood: { x: CX + 340, y: 486, width: 300, height: 110, fontSize: 22 },
+  // Kartu tema: lima kartu sama lebar (urutan sama dengan MAP_THEMES), jarak 20 antar kartu, di tengah panel.
+  themeFaces: { x: CX - 440, y: 486, width: 200, height: 110, fontSize: 17 },
+  themeCountries: { x: CX - 220, y: 486, width: 200, height: 110, fontSize: 17 },
+  themeFood: { x: CX, y: 486, width: 200, height: 110, fontSize: 17 },
+  themeAnimals: { x: CX + 220, y: 486, width: 200, height: 110, fontSize: 17 },
+  themeClocks: { x: CX + 440, y: 486, width: 200, height: 110, fontSize: 17 },
   back: { x: CX, y: 604, width: 280, height: 56, fontSize: 26 },
 };
 

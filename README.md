@@ -172,6 +172,8 @@ Pilih tema di menu utama sebelum bermain:
 - **Wajah** — emoji wajah bulat.
 - **Negara** — bendera dari 24 negara.
 - **Makanan & Minuman** — emoji makanan dan minuman.
+- **Hewan** — 24 emoji hewan, dari kucing sampai unicorn.
+- **Jam** — 24 jam analog (12 jam pas dan 12 setengah jam), digambar sebagai vektor.
 
 Tema yang dipilih disimpan di browser dan digunakan untuk semua level, termasuk saat memilih level tertentu atau mengulang level.
 

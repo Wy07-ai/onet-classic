@@ -249,7 +249,7 @@ Detail lengkap ada di [ARCHITECTURE.md](ARCHITECTURE.md). Ringkasan untuk orient
 | High score | `src/utils/highScore.js` | localStorage + fallback memori |
 | Progres level | `src/utils/levelProgress.js` | localStorage key `onet_unlocked_level` |
 | Layout papan | `src/utils/boardLayout.js` | Ukuran tile dinamis |
-| Tema map | `src/utils/mapThemes.js` | Wajah / Negara / Makanan |
+| Tema map | `src/utils/mapThemes.js` | Wajah / Negara / Makanan / Hewan / Jam |
 | Audio mute | `src/utils/audioSettings.js` | Registry Phaser |
 | Scene cleanup | `src/utils/sceneCleanup.js` | Wajib untuk listener |
 | Konstanta & level | `src/constants.js` | GAMEPLAY, LEVELS, COLORS, SCENES |

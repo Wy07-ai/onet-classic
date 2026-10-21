@@ -2,6 +2,8 @@ export const MAP_THEMES = [
   { id: 'faces', label: 'WAJAH', preview: '🙂', textureKey: 'face-tiles', frameCount: 24 },
   { id: 'countries', label: 'NEGARA', preview: '🌍', textureKey: 'country-tiles', frameCount: 24 },
   { id: 'food', label: 'MAKANAN & MINUMAN', preview: '🍕', textureKey: 'food-tiles', frameCount: 24 },
+  { id: 'animals', label: 'HEWAN', preview: '🐱', textureKey: 'animal-tiles', frameCount: 24 },
+  { id: 'clocks', label: 'JAM', preview: '🕒', textureKey: 'clock-tiles', frameCount: 24 },
 ];
 
 export const MAP_THEME_KEY = 'onet_map_theme';

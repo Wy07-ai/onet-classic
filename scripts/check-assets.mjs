@@ -26,6 +26,7 @@ const REQUIRED_AUDIO = [
 
 const REQUIRED_SVG = [
   'animal-tiles.svg',
+  'clock-tiles.svg',
   'country-tiles.svg',
   'face-tiles.svg',
   'food-tiles.svg',

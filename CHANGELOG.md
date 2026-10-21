@@ -19,10 +19,12 @@ Jenis perubahan: `Added` (fitur baru), `Changed` (perubahan perilaku), `Deprecat
 - **Rekor dipisah per tingkat kesulitan** (`onet_high_score_easy`, `onet_high_score_hard`). Rekor Normal tetap memakai key lama `onet_high_score`, jadi rekor yang sudah tersimpan tidak hilang.
 - Pilihan kesulitan tersimpan di `localStorage` (`onet_difficulty`) dan tetap bekerja lewat cadangan memori bila storage diblokir.
 - Pengujian baru `tests/difficulty.test.mjs`; `highscore.test.mjs` dan `layout.test.mjs` diperluas.
+- **Tema map Hewan dan Jam**, melengkapi Wajah, Negara, dan Makanan & Minuman. Hewan memakai spritesheet `animal-tiles.svg` yang sudah ada; Jam memakai spritesheet baru `clock-tiles.svg` berisi 24 jam analog (12 jam pas dan 12 setengah jam).
 
 ### Changed
 
 - Panel Pengaturan ditata ulang menjadi tiga seksi (Audio, Tingkat Kesulitan, Tema Map).
+- Kartu tema di Pengaturan kini lima sebaris: lebih ramping, dengan contoh tile lebih kecil dan label panjang yang turun ke baris kedua.
 
 Ide fitur mendatang dicatat di [ROADMAP.md](ROADMAP.md).
 
